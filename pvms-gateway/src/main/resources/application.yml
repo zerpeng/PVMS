@@ -1,0 +1,50 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: pvms-gateway
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+      config:
+        server-addr: 127.0.0.1:8848
+        file-extension: yaml
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods:
+              - GET
+              - POST
+              - DELETE
+              - PUT
+              - OPTIONS
+            allowedHeaders: "*"
+      discovery:
+        locator:
+          enabled: true
+      routes:
+        - id: pvms-auth
+          uri: lb://pvms-auth
+          predicates:
+            - Path=/api/auth/**
+        - id: pvms-media
+          uri: lb://pvms-media
+          predicates:
+            - Path=/api/media/**
+          filters:
+            - StripPrefix=2
+        - id: pvms-processor
+          uri: lb://pvms-processor
+          predicates:
+            - Path=/api/processor/**
+  config:
+    import:
+      - optional:nacos:${spring.application.name}.yaml
+
+feign:
+  sentinel:
+    enabled: true

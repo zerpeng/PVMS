@@ -1,0 +1,45 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: pvms-processor
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+      config:
+        server-addr: 127.0.0.1:8848
+        file-extension: yaml
+  config:
+    import:
+      - optional:nacos:${spring.application.name}.yaml
+  datasource:
+    url: jdbc:mysql://localhost:3306/pvms_media?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&allowMultiQueries=true
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      database: 0
+  rabbitmq:
+    host: 127.0.0.1
+    port: 5672
+    username: guest
+    password: guest
+
+# MyBatis Plus 配置
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# 缩略图配置
+pvms:
+  processor:
+    thumbnail-path: D:/pvms/thumbnails
+    thumbnail-width: 320
+    ffmpeg-path: D:/Program Files (x86)/ffmpeg-8.1-essentials_build/bin/ffmpeg.exe # 如果已加环境变量保持不变，否则改为绝对路径如 D:/ffmpeg/bin/ffmpeg.exe
