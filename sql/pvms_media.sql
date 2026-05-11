@@ -108,7 +108,8 @@ CREATE TABLE `monitor_directory`  (
   `is_recursive` tinyint NULL DEFAULT 1 COMMENT '是否递归子目录',
   `scan_status` tinyint NULL DEFAULT 0 COMMENT '扫描状态：0-待机，1-扫描中',
   `last_scan_time` datetime NULL DEFAULT NULL COMMENT '最后一次完整扫描时间',
-  `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP,
+  `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updateTime` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '修改时间',
   `del_flag` tinyint NULL DEFAULT 0 COMMENT '删除标志：0-正常，1-已删除',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_path`(`dir_path`(768) ASC) USING BTREE

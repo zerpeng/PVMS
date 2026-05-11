@@ -27,12 +27,6 @@ public class MonitorDirectoryServiceImpl extends ServiceImpl<MonitorDirectoryMap
             throw new ApiException("Path does not exist or is not a valid directory: " + path);
         }
 
-        long count = count(new LambdaQueryWrapper<MonitorDirectory>()
-                .eq(MonitorDirectory::getDirPath, path));
-        if (count > 0) {
-            throw new ApiException("Directory already exists in monitor list: " + path);
-        }
-
         if (directory.getScanStatus() == null) {
             directory.setScanStatus(0);
         }
@@ -41,6 +35,14 @@ public class MonitorDirectoryServiceImpl extends ServiceImpl<MonitorDirectoryMap
         }
         if (directory.getCreateTime() == null) {
             directory.setCreateTime(LocalDateTime.now());
+        }
+
+        MonitorDirectory existingDirectory = baseMapper.selectAnyByPath(path);
+        if (existingDirectory != null) {
+            if (Integer.valueOf(0).equals(existingDirectory.getDelFlag())) {
+                throw new ApiException("该目录已存在，不能再次添加");
+            }
+            return restoreDirectory(existingDirectory, directory);
         }
 
         log.info("Add monitor directory: {}", path);
@@ -61,5 +63,17 @@ public class MonitorDirectoryServiceImpl extends ServiceImpl<MonitorDirectoryMap
         }
         return list(new LambdaQueryWrapper<MonitorDirectory>()
                 .in(MonitorDirectory::getId, ids));
+    }
+
+    private MonitorDirectory restoreDirectory(MonitorDirectory existingDirectory, MonitorDirectory requestDirectory) {
+        existingDirectory.setIsRecursive(requestDirectory.getIsRecursive());
+        existingDirectory.setScanStatus(requestDirectory.getScanStatus());
+        existingDirectory.setLastScanTime(null);
+        existingDirectory.setUpdateTime(LocalDateTime.now());
+        existingDirectory.setDelFlag(0);
+
+        log.info("Restore monitor directory: {}", existingDirectory.getDirPath());
+        updateById(existingDirectory);
+        return getById(existingDirectory.getId());
     }
 }

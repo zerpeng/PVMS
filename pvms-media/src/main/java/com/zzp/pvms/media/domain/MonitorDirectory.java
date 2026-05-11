@@ -28,4 +28,6 @@ public class MonitorDirectory {
     private Integer delFlag;
 
     private LocalDateTime createTime;
+
+    private LocalDateTime updateTime;
 }

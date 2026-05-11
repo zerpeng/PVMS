@@ -40,7 +40,13 @@
         :class="['directory-card', { selected: selectedIds.includes(directory.id) }]"
         @click="toggleDirectory(directory.id)"
       >
-        <input class="directory-check" type="checkbox" :checked="selectedIds.includes(directory.id)" @click.stop @change="toggleDirectory(directory.id)">
+        <input
+          class="directory-check"
+          type="checkbox"
+          :checked="selectedIds.includes(directory.id)"
+          @click.stop
+          @change="toggleDirectory(directory.id)"
+        >
         <Folder class="folder-icon" :size="86" />
         <h3>{{ getDirectoryName(directory.dirPath) }}</h3>
         <p>{{ directory.dirPath }}</p>
@@ -68,11 +74,25 @@
         </div>
       </div>
     </transition>
+
+    <transition name="dialog-fade">
+      <div v-if="messageDialog.visible" class="dialog-overlay message-overlay" @click.self="closeMessageDialog">
+        <div class="dialog-card message-dialog" :class="`message-${messageDialog.type}`">
+          <div class="message-header">
+            <h2>{{ messageDialog.title }}</h2>
+          </div>
+          <p class="message-text">{{ messageDialog.message }}</p>
+          <div class="dialog-actions">
+            <button class="primary-btn" type="button" @click="closeMessageDialog">知道了</button>
+          </div>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { Folder, Plus, RefreshCw, Trash2 } from 'lucide-vue-next'
 import { mediaApi } from '@/api/media'
 
@@ -85,6 +105,8 @@ interface MonitorDirectory {
   createTime?: string
 }
 
+type MessageDialogType = 'info' | 'success' | 'error'
+
 const directories = ref<MonitorDirectory[]>([])
 const selectedIds = ref<number[]>([])
 const loading = ref(false)
@@ -94,14 +116,46 @@ const newDirectoryPath = ref('')
 const newDirectoryRecursive = ref(true)
 const syncScanEnabled = ref(false)
 
+const messageDialog = reactive({
+  visible: false,
+  title: '',
+  message: '',
+  type: 'info' as MessageDialogType
+})
+
 const isAllSelected = computed(() => directories.value.length > 0 && selectedIds.value.length === directories.value.length)
+
+const extractErrorMessage = (error: any, fallback: string) => {
+  const responseData = error?.response?.data
+  if (typeof responseData?.message === 'string' && responseData.message.trim()) {
+    return responseData.message
+  }
+  if (typeof responseData === 'string' && responseData.trim()) {
+    return responseData
+  }
+  if (typeof error?.message === 'string' && error.message.trim() && error.message !== '[object Object]') {
+    return error.message
+  }
+  return fallback
+}
+
+const showMessageDialog = (title: string, message: string, type: MessageDialogType = 'info') => {
+  messageDialog.title = title
+  messageDialog.message = message
+  messageDialog.type = type
+  messageDialog.visible = true
+}
+
+const closeMessageDialog = () => {
+  messageDialog.visible = false
+}
 
 const loadDirectories = async () => {
   loading.value = true
   try {
     directories.value = await mediaApi.fetchDirectories()
-    const existingIds = new Set(directories.value.map(directory => directory.id))
-    selectedIds.value = selectedIds.value.filter(id => existingIds.has(id))
+    const existingIds = new Set(directories.value.map((directory) => directory.id))
+    selectedIds.value = selectedIds.value.filter((id) => existingIds.has(id))
   } catch (error) {
     console.error('Failed to load directories:', error)
   } finally {
@@ -145,13 +199,16 @@ const addDirectory = async () => {
       isRecursive: newDirectoryRecursive.value ? 1 : 0,
       scanStatus: 0
     })
+
     if (syncScanEnabled.value && directory?.id) {
       await mediaApi.scanDirectories([directory.id])
     }
+
     addDialogOpen.value = false
     await loadDirectories()
+    showMessageDialog('添加成功', '监控目录已添加。', 'success')
   } catch (error: any) {
-    alert(error.message || '新增监控目录失败')
+    showMessageDialog('添加失败', extractErrorMessage(error, '新增监控目录失败'), 'error')
   } finally {
     loading.value = false
   }
@@ -169,7 +226,7 @@ const toggleSyncScan = async (event: Event) => {
     syncScanEnabled.value = Boolean(preference?.syncScanEnabled)
   } catch (error: any) {
     syncScanEnabled.value = previousValue
-    alert(error.message || '同步扫描设置保存失败')
+    showMessageDialog('保存失败', extractErrorMessage(error, '同步扫描设置保存失败'), 'error')
   } finally {
     preferenceLoading.value = false
   }
@@ -177,12 +234,12 @@ const toggleSyncScan = async (event: Event) => {
 
 const toggleDirectory = (id: number) => {
   selectedIds.value = selectedIds.value.includes(id)
-    ? selectedIds.value.filter(selectedId => selectedId !== id)
+    ? selectedIds.value.filter((selectedId) => selectedId !== id)
     : [...selectedIds.value, id]
 }
 
 const toggleSelectAll = () => {
-  selectedIds.value = isAllSelected.value ? [] : directories.value.map(directory => directory.id)
+  selectedIds.value = isAllSelected.value ? [] : directories.value.map((directory) => directory.id)
 }
 
 const scanSelectedDirectories = async () => {
@@ -191,10 +248,10 @@ const scanSelectedDirectories = async () => {
   loading.value = true
   try {
     const message = await mediaApi.scanDirectories(selectedIds.value)
-    alert(message || `已启动 ${selectedIds.value.length} 个扫描任务`)
     await loadDirectories()
+    showMessageDialog('扫描已启动', typeof message === 'string' ? message : `已启动 ${selectedIds.value.length} 个扫描任务`, 'success')
   } catch (error: any) {
-    alert(error.message || '扫描任务启动失败')
+    showMessageDialog('扫描失败', extractErrorMessage(error, '扫描任务启动失败'), 'error')
   } finally {
     loading.value = false
   }
@@ -206,11 +263,12 @@ const removeSelectedDirectories = async () => {
 
   loading.value = true
   try {
-    await Promise.all(selectedIds.value.map(id => mediaApi.removeDirectory(id)))
+    await Promise.all(selectedIds.value.map((id) => mediaApi.removeDirectory(id)))
     selectedIds.value = []
     await loadDirectories()
+    showMessageDialog('移除成功', '选中的监控目录已移除。', 'success')
   } catch (error: any) {
-    alert(error.message || '移除监控目录失败')
+    showMessageDialog('移除失败', extractErrorMessage(error, '移除监控目录失败'), 'error')
   } finally {
     loading.value = false
   }
@@ -492,6 +550,36 @@ onMounted(() => {
 .primary-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.message-overlay {
+  z-index: 230;
+}
+
+.message-dialog {
+  width: min(420px, 100%);
+}
+
+.message-header h2 {
+  margin: 0;
+}
+
+.message-text {
+  margin-top: 14px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.message-success {
+  border-color: rgba(22, 163, 74, 0.22);
+}
+
+.message-error {
+  border-color: rgba(220, 38, 38, 0.22);
+}
+
+.message-info {
+  border-color: rgba(37, 99, 235, 0.22);
 }
 
 .dialog-fade-enter-active,
