@@ -1,11 +1,11 @@
 <template>
-  <div class="asset-card" @click="$emit('select')">
+  <div class="asset-card" @click="$emit('preview')">
     <div class="card-badge">{{ asset.type }}</div>
     
     <div class="asset-thumb-container">
       <img 
-        v-if="asset.url && !hasError"
-        :src="getThumbnailUrl(asset.url)" 
+        v-if="thumbnailUrl && !hasError"
+        :src="thumbnailUrl" 
         class="asset-thumb" 
         loading="lazy"
         @error="handleImgError"
@@ -24,7 +24,7 @@
         <button class="action-btn" @click.stop="toggleHeart">
           <Heart :class="{ 'is-active': isHearted }" :fill="isHearted ? 'currentColor' : 'none'" />
         </button>
-        <button class="action-btn" @click.stop="$emit('select')">
+        <button class="action-btn" @click.stop="$emit('preview')">
           <Eye />
         </button>
       </div>
@@ -40,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onBeforeUnmount, ref, watch } from 'vue'
 import { Heart, Eye, Calendar, ImageOff, Play } from 'lucide-vue-next'
 import type { Asset } from '@/stores/media'
 import { mediaApi } from '@/api/media'
@@ -49,18 +49,38 @@ const props = defineProps<{
   asset: Asset
 }>()
 
-defineEmits(['select'])
+defineEmits(['select', 'preview'])
 
 const isHearted = ref(false)
 const hasError = ref(false)
+const thumbnailUrl = ref('')
 
 const toggleHeart = () => {
   isHearted.value = !isHearted.value
 }
 
-// 获取预览图
-const getThumbnailUrl = (path: string) => {
-  return mediaApi.getThumbnailUrl(path)
+// 释放缩略图 Blob URL，避免列表刷新或组件销毁后占用浏览器内存。
+const revokeThumbnailUrl = () => {
+  if (thumbnailUrl.value) {
+    URL.revokeObjectURL(thumbnailUrl.value)
+    thumbnailUrl.value = ''
+  }
+}
+
+// 通过 axios 拉取缩略图 Blob，确保请求会携带 Authorization。
+const loadThumbnail = async () => {
+  hasError.value = false
+  revokeThumbnailUrl()
+
+  if (!props.asset.url) return
+
+  try {
+    const blob = await mediaApi.fetchThumbnailBlob(props.asset.url)
+    thumbnailUrl.value = URL.createObjectURL(blob)
+  } catch (error) {
+    console.warn(`缩略图加载失败: ${props.asset.url}`, error)
+    hasError.value = true
+  }
 }
 
 const handleImgError = (e: Event) => {
@@ -68,6 +88,12 @@ const handleImgError = (e: Event) => {
   console.warn(`图片加载失败: ${target.src}`)
   hasError.value = true
 }
+
+watch(() => props.asset.url, loadThumbnail, { immediate: true })
+
+onBeforeUnmount(() => {
+  revokeThumbnailUrl()
+})
 </script>
 
 <style scoped>

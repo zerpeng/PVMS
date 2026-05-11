@@ -9,8 +9,8 @@
       <li 
         v-for="item in menuItems" 
         :key="item.label"
-        :class="['nav-item', { active: activeItem === item.label }]"
-        @click="activeItem = item.label"
+        :class="['nav-item', { active: item.routeName && route.name === item.routeName, disabled: !item.routeName }]"
+        @click="goToMenu(item.routeName)"
       >
         <component :is="item.icon" class="nav-icon" />
         {{ item.label }}
@@ -33,21 +33,28 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { 
   Aperture, LayoutGrid, FolderOpen, Tag, 
   Heart, Clock, Cpu, Settings 
 } from 'lucide-vue-next'
 
-const activeItem = ref('媒体库')
+const route = useRoute()
+const router = useRouter()
 
 const menuItems = [
-  { label: '媒体库', icon: LayoutGrid },
-  { label: '项目工程', icon: FolderOpen },
-  { label: '智能标签', icon: Tag },
-  { label: '我的收藏', icon: Heart },
-  { label: '最近访问', icon: Clock },
+  { label: '媒体库', icon: LayoutGrid, routeName: 'library' },
+  { label: '项目工程', icon: FolderOpen, routeName: 'projects' },
+  { label: '智能标签', icon: Tag, routeName: '' },
+  { label: '我的收藏', icon: Heart, routeName: '' },
+  { label: '最近访问', icon: Clock, routeName: '' },
 ]
+
+// 仅已实现的菜单项执行路由跳转，避免未实现入口误高亮。
+const goToMenu = (routeName: string) => {
+  if (!routeName) return
+  router.push({ name: routeName })
+}
 </script>
 
 <style scoped>
@@ -115,6 +122,17 @@ const menuItems = [
   background: var(--accent);
   color: white;
   box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+}
+
+.nav-item.disabled {
+  cursor: default;
+  opacity: 0.58;
+}
+
+.nav-item.disabled:hover {
+  background: transparent;
+  color: var(--text-muted);
+  transform: none;
 }
 
 .divider {

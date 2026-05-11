@@ -8,7 +8,11 @@ const request = axios.create({
 // 请求拦截器
 request.interceptors.request.use(
   (config) => {
-    // 预留：此处可以添加 Token 等认证信息
+    // 从本地缓存读取登录 Token，并统一放入 Authorization 请求头。
+    const token = localStorage.getItem('token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
     return config
   },
   (error) => Promise.reject(error)
@@ -26,6 +30,11 @@ request.interceptors.response.use(
     return res.data || res
   },
   (error) => {
+    // 收到 401 说明登录态失效，清理本地 Token 并跳转回登录页。
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token')
+      window.location.href = '/login'
+    }
     console.error('Network Error:', error)
     return Promise.reject(error)
   }

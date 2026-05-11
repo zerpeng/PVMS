@@ -1,10 +1,14 @@
 package com.zzp.pvms.auth.controller;
 
 import com.zzp.pvms.auth.domain.dto.LoginRequest;
+import com.zzp.pvms.auth.service.CaptchaService;
+import com.zzp.pvms.auth.service.LogoutService;
 import com.zzp.pvms.auth.util.JwtTokenUtil;
 import com.zzp.pvms.common.api.Result;
+import com.zzp.pvms.common.constant.ServiceConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -33,22 +37,23 @@ public class AuthController {
     @Autowired
     private com.zzp.pvms.auth.mapper.SysUserMapper sysUserMapper;
 
+    @Autowired
+    private CaptchaService captchaService;
+
+    @Autowired
+    private LogoutService logoutService;
+
     /**
      * 获取图形验证码
      */
     @org.springframework.web.bind.annotation.GetMapping("/captcha")
     public Result<Map<String, String>> getCaptcha() {
-        // 创建线段干扰的验证码
-        cn.hutool.captcha.LineCaptcha captcha = cn.hutool.captcha.CaptchaUtil.createLineCaptcha(120, 40);
-        String base64 = captcha.getImageBase64Data();
-        String code = captcha.getCode();
-        
-        // 实际开发中应该存入 Redis，此处为了简化演示存入内存或返回给前端（调试用）
+        // 生成验证码图片和服务端校验 key，前端登录时需要把 key 一起带回。
+        CaptchaService.CaptchaPayload captcha = captchaService.generate();
         Map<String, String> result = new java.util.HashMap<>();
-        result.put("img", base64);
-        result.put("key", "captcha_" + System.currentTimeMillis()); // 预留 Key
-        
-        log.info("生成验证码: {}", code);
+        result.put("img", captcha.getImg());
+        result.put("key", captcha.getKey());
+
         return Result.success("验证码获取成功", result);
     }
 
@@ -86,6 +91,11 @@ public class AuthController {
         log.info("用户登录尝试: {}, 密码长度: {}", loginRequest.getUsername(), 
                 loginRequest.getPassword() != null ? loginRequest.getPassword().length() : 0);
         try {
+            // 先校验验证码，拦截无效登录请求，避免继续触发用户名密码认证。
+            if (!captchaService.validate(loginRequest.getCaptchaKey(), loginRequest.getCaptcha())) {
+                return Result.failed("验证码错误或已过期");
+            }
+
             // 1. 执行认证
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
@@ -100,5 +110,14 @@ public class AuthController {
             log.error("用户登录失败: {}, 原因: {}", loginRequest.getUsername(), e.getMessage());
             return Result.failed("登录失败: " + e.getMessage());
         }
+    }
+
+    /**
+     * 退出登录，将当前 JWT 写入 Redis 黑名单，后续请求会被网关拒绝。
+     */
+    @PostMapping("/logout")
+    public Result<String> logout(@RequestHeader(value = ServiceConstants.AUTHORIZATION_HEADER, required = false) String authorization) {
+        logoutService.logout(authorization);
+        return Result.success("退出登录成功");
     }
 }

@@ -1,39 +1,57 @@
 <template>
   <header class="header">
-    <div class="header-left">
-      <div class="breadcrumb">
-        <span>媒体库</span> 
-        <ChevronRight class="breadcrumb-sep" /> 
-        <span>影棚 A</span>
-      </div>
-      <h2 class="page-title">工作空间</h2>
-    </div>
-    
-    <div class="search-container">
+    <div v-if="showSearch" class="search-container">
       <Search class="search-icon" />
       <input type="text" placeholder="搜索文件名、元数据或 AI 标签...">
     </div>
 
-    <div class="header-actions">
+    <div class="header-actions" :class="{ 'push-right': showSearch }">
       <button class="icon-btn" @click="appStore.toggleTheme" :title="themeTitle">
         <Sun v-if="appStore.theme === 'dark'" />
         <Moon v-else />
       </button>
       <button class="icon-btn" title="上传媒体"><Plus /></button>
-      <div class="user-avatar">
-        <div class="avatar-inner"></div>
+      <div class="user-menu">
+        <button class="user-avatar" type="button" @click="menuOpen = !menuOpen" title="用户菜单">
+          <div class="avatar-inner"></div>
+        </button>
+        <div v-if="menuOpen" class="user-dropdown">
+          <button type="button" @click="handleLogout">
+            <LogOut :size="16" />
+            退出登录
+          </button>
+        </div>
       </div>
     </div>
   </header>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { ChevronRight, Search, Sun, Moon, Plus } from 'lucide-vue-next'
+import { computed, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { Search, Sun, Moon, Plus, LogOut } from 'lucide-vue-next'
 import { useAppStore } from '@/stores/app'
+import { authApi } from '@/api/auth'
 
 const appStore = useAppStore()
+const route = useRoute()
+const router = useRouter()
+const menuOpen = ref(false)
 const themeTitle = computed(() => `切换至${appStore.theme === 'light' ? '深色' : '浅色'}模式`)
+const showSearch = computed(() => route.name === 'library')
+
+// 退出登录先通知后端拉黑当前 Token，再清理前端缓存并跳转登录页。
+const handleLogout = async () => {
+  try {
+    await authApi.logout()
+  } catch (error) {
+    console.error('Logout failed:', error)
+  } finally {
+    localStorage.removeItem('token')
+    menuOpen.value = false
+    router.replace({ name: 'login' })
+  }
+}
 </script>
 
 <style scoped>
@@ -42,7 +60,7 @@ const themeTitle = computed(() => `切换至${appStore.theme === 'light' ? '深�
   padding: 0 2.5rem;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 1.25rem;
   background: rgba(var(--bg-rgb), 0.8); /* We'll need to define bg-rgb if we want opacity */
   backdrop-filter: blur(12px);
   z-index: 40;
@@ -53,28 +71,8 @@ const themeTitle = computed(() => `切换至${appStore.theme === 'light' ? '深�
 [data-theme="light"] .header { background: rgba(248, 250, 252, 0.8); }
 [data-theme="dark"] .header { background: rgba(2, 6, 23, 0.8); }
 
-.breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--text-muted);
-  font-size: 0.85rem;
-  margin-bottom: 4px;
-}
-
-.breadcrumb-sep {
-  width: 12px;
-  height: 12px;
-}
-
-.page-title {
-  font-size: 1.5rem;
-  letter-spacing: -0.5px;
-  color: var(--primary);
-}
-
 .search-container {
-  flex: 0 1 450px;
+  flex: 0 1 520px;
   position: relative;
 }
 
@@ -110,6 +108,11 @@ const themeTitle = computed(() => `切换至${appStore.theme === 'light' ? '深�
   display: flex;
   gap: 1rem;
   align-items: center;
+  margin-left: auto;
+}
+
+.header-actions.push-right {
+  margin-left: auto;
 }
 
 .icon-btn {
@@ -131,6 +134,10 @@ const themeTitle = computed(() => `切换至${appStore.theme === 'light' ? '深�
   transform: translateY(-2px);
 }
 
+.user-menu {
+  position: relative;
+}
+
 .user-avatar {
   width: 44px;
   height: 44px;
@@ -138,6 +145,8 @@ const themeTitle = computed(() => `切换至${appStore.theme === 'light' ? '深�
   overflow: hidden;
   border: 2px solid var(--accent);
   padding: 2px;
+  background: transparent;
+  cursor: pointer;
 }
 
 .avatar-inner {
@@ -147,5 +156,48 @@ const themeTitle = computed(() => `切换至${appStore.theme === 'light' ? '深�
   background: #e2e8f0;
   background-image: url('https://api.dicebear.com/7.x/avataaars/svg?seed=Felix');
   background-size: cover;
+}
+
+.user-dropdown {
+  position: absolute;
+  top: 54px;
+  right: 0;
+  min-width: 138px;
+  padding: 8px;
+  border-radius: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--card-shadow-hover);
+  z-index: 80;
+}
+
+.user-dropdown button {
+  width: 100%;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #dc2626;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.user-dropdown button:hover {
+  background: rgba(220, 38, 38, 0.08);
+}
+
+@media (max-width: 900px) {
+  .header {
+    padding: 0 1.25rem;
+  }
+
+  .search-container {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
 }
 </style>

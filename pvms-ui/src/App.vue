@@ -1,5 +1,7 @@
 <template>
-  <div class="app-container">
+  <router-view v-if="isAuthLayout" />
+
+  <div v-else class="app-container">
     <Sidebar />
     <main class="main-content">
       <Header />
@@ -12,13 +14,16 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import Sidebar from '@/components/layout/Sidebar.vue'
 import Header from '@/components/layout/Header.vue'
 import DetailPanel from '@/components/gallery/DetailPanel.vue'
 import { useAppStore } from '@/stores/app'
 
 const appStore = useAppStore()
+const route = useRoute()
+const isAuthLayout = computed(() => route.meta.layout === 'auth')
 
 onMounted(() => {
   document.documentElement.setAttribute('data-theme', appStore.theme)

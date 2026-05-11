@@ -1,15 +1,16 @@
 <template>
   <div class="auth-container">
-    <div class="auth-card">
-      <div class="auth-visual">
-        <div class="visual-content">
-          <Aperture :size="48" class="visual-logo" />
-          <h1 class="visual-title">PVMS STUDIO</h1>
-          <p class="visual-desc">Professional Visual Management System</p>
+    <transition name="notice-pop">
+      <div v-if="notice.visible" class="notice-overlay">
+        <div class="notice-card" role="alert">
+          <div class="notice-title">登录失败</div>
+          <div class="notice-message">{{ notice.message }}</div>
+          <button type="button" class="notice-action" @click="hideNotice">知道了</button>
         </div>
-        <div class="visual-overlay"></div>
       </div>
-      
+    </transition>
+
+    <div class="auth-card">
       <div class="auth-form-container">
         <!-- Login Form -->
         <transition name="fade-slide" mode="out-in">
@@ -131,7 +132,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { 
-  Aperture, User, Lock, Loader2, 
+  User, Lock, Loader2, 
   ShieldCheck, UserCircle, FileText 
 } from 'lucide-vue-next'
 import { authApi } from '@/api/auth'
@@ -140,6 +141,14 @@ const router = useRouter()
 const mode = ref<'login' | 'register'>('login')
 const loading = ref(false)
 const captchaImg = ref('')
+// 保存后端返回的验证码 key，登录时与用户输入的验证码一起提交。
+const captchaKey = ref('')
+// 页面内居中提示框状态，用来替代浏览器原生 alert。
+const notice = reactive({
+  visible: false,
+  message: ''
+})
+let noticeTimer: ReturnType<typeof setTimeout> | undefined
 
 const loginForm = reactive({
   username: '',
@@ -159,19 +168,50 @@ const refreshCaptcha = async () => {
   try {
     const res = await authApi.getCaptcha()
     captchaImg.value = res.img
+    // 每次刷新验证码都同步替换 key，并清空旧输入，避免旧验证码误提交。
+    captchaKey.value = res.key
+    loginForm.captcha = ''
+    registerForm.captcha = ''
   } catch (err) {
     console.error('Failed to load captcha', err)
+  }
+}
+
+// 展示居中圆角提示框，并在短暂延迟后自动关闭。
+const showNotice = (message: string) => {
+  notice.message = message
+  notice.visible = true
+
+  if (noticeTimer) {
+    clearTimeout(noticeTimer)
+  }
+
+  noticeTimer = setTimeout(() => {
+    notice.visible = false
+  }, 2800)
+}
+
+// 手动关闭提示框，同时清理自动关闭定时器。
+const hideNotice = () => {
+  notice.visible = false
+  if (noticeTimer) {
+    clearTimeout(noticeTimer)
+    noticeTimer = undefined
   }
 }
 
 const handleLogin = async () => {
   loading.value = true
   try {
-    const res = await authApi.login(loginForm)
+    // 登录认证需要同时提交验证码文本和验证码 key，后端据此完成一次性校验。
+    const res = await authApi.login({
+      ...loginForm,
+      captchaKey: captchaKey.value
+    })
     localStorage.setItem('token', res)
-    router.push('/')
+    router.push('/media')
   } catch (err: any) {
-    alert(err.message || '登录失败')
+    showNotice(err.message || '登录失败')
     refreshCaptcha()
   } finally {
     loading.value = false
@@ -199,6 +239,8 @@ onMounted(() => {
 
 <style scoped>
 .auth-container {
+  flex: 1;
+  width: 100%;
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -209,69 +251,80 @@ onMounted(() => {
   padding: 20px;
 }
 
-.auth-card {
-  width: 1000px;
-  max-width: 100%;
-  height: 640px;
+.notice-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.18);
+  backdrop-filter: blur(2px);
+}
+
+.notice-card {
+  width: min(360px, 100%);
+  padding: 24px;
+  border-radius: 22px;
+  border: 1px solid rgba(248, 113, 113, 0.28);
   background: var(--surface);
-  border-radius: 40px;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.22);
+  text-align: center;
+}
+
+.notice-title {
+  margin-bottom: 8px;
+  color: #dc2626;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.notice-message {
+  color: var(--text);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.notice-action {
+  margin-top: 18px;
+  min-width: 108px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.notice-pop-enter-active,
+.notice-pop-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.notice-pop-enter-from,
+.notice-pop-leave-to {
+  opacity: 0;
+  transform: scale(0.96);
+}
+
+.auth-card {
+  width: 480px;
+  max-width: 100%;
+  min-height: 560px;
+  background: var(--surface);
+  border-radius: 28px;
   display: flex;
   overflow: hidden;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
   border: 1px solid var(--border);
 }
 
-.auth-visual {
-  flex: 1.2;
-  background: var(--primary);
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 60px;
-  color: white;
-}
-
-.visual-overlay {
-  position: absolute;
-  inset: 0;
-  background-image: 
-    linear-gradient(45deg, rgba(37, 99, 235, 0.2) 0%, transparent 70%),
-    url('https://images.unsplash.com/photo-1493397212122-2b85def82820?q=80&w=2070&auto=format&fit=crop');
-  background-size: cover;
-  background-position: center;
-  opacity: 0.8;
-}
-
-.visual-content {
-  position: relative;
-  z-index: 10;
-  text-align: center;
-}
-
-.visual-logo {
-  color: var(--accent);
-  margin-bottom: 24px;
-  filter: drop-shadow(0 0 15px rgba(37, 99, 235, 0.5));
-}
-
-.visual-title {
-  font-size: 2.5rem;
-  font-weight: 900;
-  letter-spacing: -1px;
-  margin-bottom: 8px;
-}
-
-.visual-desc {
-  font-size: 1rem;
-  opacity: 0.7;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-}
-
 .auth-form-container {
   flex: 1;
-  padding: 60px;
+  padding: 56px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -350,29 +403,33 @@ onMounted(() => {
 .captcha-row {
   display: flex;
   gap: 12px;
+  align-items: center;
 }
 
 .captcha-input {
   flex: 1;
+  min-width: 0;
 }
 
 .captcha-img-box {
-  width: 120px;
+  width: 140px;
   height: 48px;
   background: var(--surface-hover);
-  border-radius: 16px;
-  overflow: hidden;
+  border-radius: 12px;
+  overflow: visible;
   cursor: pointer;
   border: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 4px 8px;
 }
 
 .captcha-img-box img {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
+  max-height: 40px;
+  object-fit: contain;
 }
 
 .submit-btn {
@@ -447,16 +504,17 @@ onMounted(() => {
 
 @media (max-width: 900px) {
   .auth-card {
-    flex-direction: column;
     height: auto;
     width: 100%;
-    max-width: 500px;
+    max-width: 480px;
   }
-  .auth-visual {
-    padding: 40px;
+
+  .auth-form-container {
+    padding: 40px 28px;
   }
-  .visual-title {
-    font-size: 1.75rem;
+
+  .input-row {
+    grid-template-columns: 1fr;
   }
 }
 </style>

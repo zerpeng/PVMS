@@ -9,6 +9,13 @@ export const authApi = {
   },
 
   /**
+   * 退出登录，后端会将当前 Token 加入黑名单。
+   */
+  logout() {
+    return request.post<any, any>('/auth/logout')
+  },
+
+  /**
    * 注册申请
    */
   register(data: any) {

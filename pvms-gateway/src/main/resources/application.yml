@@ -4,6 +4,12 @@ server:
 spring:
   application:
     name: pvms-gateway
+  data:
+    # 网关读取本地 Redis 中的 JWT 黑名单，默认端口为 6379
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      database: 0
   cloud:
     nacos:
       discovery:

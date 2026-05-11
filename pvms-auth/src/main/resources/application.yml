@@ -19,6 +19,12 @@ spring:
     username: root
     password: root
     driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    # 登录验证码存储在本地 Redis，默认端口为 6379
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      database: 0
 
 # MyBatis Plus 配置
 mybatis-plus:

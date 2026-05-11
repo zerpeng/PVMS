@@ -13,9 +13,16 @@
         v-for="asset in mediaStore.assets" 
         :key="asset.id" 
         :asset="asset"
-        @select="mediaStore.selectAsset(asset)"
+        @preview="openViewer(asset.id)"
       />
     </div>
+
+    <MediaViewer
+      :open="viewerOpen"
+      :assets="mediaStore.assets"
+      :initial-index="viewerIndex"
+      @close="viewerOpen = false"
+    />
   </div>
 </template>
 
@@ -23,11 +30,34 @@
 import { onMounted, ref } from 'vue'
 import { SlidersHorizontal, SortDesc } from 'lucide-vue-next'
 import AssetCard from '@/components/gallery/AssetCard.vue'
+import MediaViewer from '@/components/gallery/MediaViewer.vue'
 import { useMediaStore } from '@/stores/media'
 import { mediaApi } from '@/api/media'
 
 const mediaStore = useMediaStore()
 const isLoading = ref(false)
+const viewerOpen = ref(false)
+const viewerIndex = ref(0)
+
+// 将字节数转换为更适合界面阅读的文件大小。
+const formatFileSize = (size?: number) => {
+  if (!size) return '未知'
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  let value = size
+  let unitIndex = 0
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024
+    unitIndex += 1
+  }
+  return `${value.toFixed(value >= 10 ? 1 : 2)} ${units[unitIndex]}`
+}
+
+// 打开原图/视频查看器，并定位到当前点击的媒体序号。
+const openViewer = (assetId: string) => {
+  const index = mediaStore.assets.findIndex(asset => asset.id === assetId)
+  viewerIndex.value = index < 0 ? 0 : index
+  viewerOpen.value = true
+}
 
 const loadMediaData = async () => {
   isLoading.value = true
@@ -38,16 +68,26 @@ const loadMediaData = async () => {
     const rawList = response.records || []
     
     const adaptedData = rawList.map((item: any) => ({
-      id: item.id,
+      id: String(item.id),
       name: item.fileName,
       type: (item.fileFormat || 'JPG').toUpperCase(),
+      mediaType: item.mediaType,
       date: (item.shotTime || item.createTime || '').split('T')[0],
       thumbColor: '#cbd5e1',
       url: item.thumbnailPath || '',
+      filePath: item.filePath,
+      fileSize: item.fileSize,
+      original: item,
       metadata: {
         camera: item.cameraModel ? `${item.cameraMake || ''} ${item.cameraModel}` : '设备信息未知',
+        lens: item.lensModel || '未知',
         exposure: item.exposureTime ? `${item.exposureTime}s, f/${item.fnumber}, ISO ${item.iso}` : '无相机元数据',
-        dimensions: item.width ? `${item.width} × ${item.height}` : '分辨率未知'
+        dimensions: item.width ? `${item.width} × ${item.height}` : '分辨率未知',
+        shotTime: item.shotTime ? item.shotTime.replace('T', ' ') : '',
+        format: (item.fileFormat || '').toUpperCase(),
+        size: formatFileSize(item.fileSize),
+        gps: item.gpsLatitude && item.gpsLongitude ? `${item.gpsLatitude}, ${item.gpsLongitude}` : '无数据',
+        focalLength: item.focalLength ? `${item.focalLength}mm` : '无数据'
       }
     }))
     

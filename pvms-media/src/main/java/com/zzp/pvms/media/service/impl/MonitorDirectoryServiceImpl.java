@@ -2,14 +2,16 @@ package com.zzp.pvms.media.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.zzp.pvms.common.exception.ApiException;
 import com.zzp.pvms.media.domain.MonitorDirectory;
 import com.zzp.pvms.media.mapper.MonitorDirectoryMapper;
 import com.zzp.pvms.media.service.MonitorDirectoryService;
-import com.zzp.pvms.common.exception.ApiException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -17,29 +19,47 @@ import java.util.List;
 public class MonitorDirectoryServiceImpl extends ServiceImpl<MonitorDirectoryMapper, MonitorDirectory> implements MonitorDirectoryService {
 
     @Override
-    public boolean addDirectory(MonitorDirectory directory) {
+    public MonitorDirectory addDirectory(MonitorDirectory directory) {
         String path = directory.getDirPath();
         File file = new File(path);
-        
-        // 1. 校验路径是否存在且是目录
+
         if (!file.exists() || !file.isDirectory()) {
-            throw new ApiException("路径不存在或不是一个有效的目录: " + path);
+            throw new ApiException("Path does not exist or is not a valid directory: " + path);
         }
 
-        // 2. 检查是否已经存在相同路径
         long count = count(new LambdaQueryWrapper<MonitorDirectory>()
                 .eq(MonitorDirectory::getDirPath, path));
         if (count > 0) {
-            throw new ApiException("该目录已在监控列表中: " + path);
+            throw new ApiException("Directory already exists in monitor list: " + path);
         }
 
-        log.info("添加监控目录: {}", path);
-        return save(directory);
+        if (directory.getScanStatus() == null) {
+            directory.setScanStatus(0);
+        }
+        if (directory.getIsRecursive() == null) {
+            directory.setIsRecursive(1);
+        }
+        if (directory.getCreateTime() == null) {
+            directory.setCreateTime(LocalDateTime.now());
+        }
+
+        log.info("Add monitor directory: {}", path);
+        save(directory);
+        return directory;
     }
 
     @Override
     public List<MonitorDirectory> listActiveDirectories() {
         return list(new LambdaQueryWrapper<MonitorDirectory>()
                 .orderByDesc(MonitorDirectory::getCreateTime));
+    }
+
+    @Override
+    public List<MonitorDirectory> listByIdsForScan(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return list(new LambdaQueryWrapper<MonitorDirectory>()
+                .in(MonitorDirectory::getId, ids));
     }
 }
