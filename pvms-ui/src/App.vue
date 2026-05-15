@@ -51,5 +51,6 @@ onMounted(() => {
   flex: 1;
   overflow-y: auto;
   padding: 1.5rem 2.5rem 2.5rem;
+  scroll-padding-top: 1rem;
 }
 </style>

@@ -19,7 +19,7 @@
             </div>
           </header>
 
-          <button class="nav-btn prev" type="button" @click="showPrev" :disabled="!hasPrev" title="上一张">
+          <button class="nav-btn prev" type="button" @click="showPrev" :disabled="!hasPrev" title="上一项">
             <ChevronLeft :size="28" />
           </button>
 
@@ -42,7 +42,7 @@
             <div v-else class="viewer-empty">无法加载原始文件</div>
           </div>
 
-          <button class="nav-btn next" type="button" @click="showNext" :disabled="!hasNext" title="下一张">
+          <button class="nav-btn next" type="button" @click="showNext" :disabled="!hasNext" title="下一项">
             <ChevronRight :size="28" />
           </button>
         </section>
@@ -52,6 +52,15 @@
             <p class="meta-kicker">{{ activeAsset.type }}</p>
             <h2 class="meta-title">{{ activeAsset.name }}</h2>
             <p class="meta-path">{{ activeAsset.filePath || '未记录原始路径' }}</p>
+          </div>
+
+          <div class="meta-actions">
+            <button class="meta-btn primary" type="button" @click="$emit('assign-to-album', activeAsset.id)">
+              <FolderPlus :size="16" /> 添加到相册
+            </button>
+            <button class="meta-btn" type="button" @click="$emit('assign-to-tag', activeAsset.id)">
+              <Tags :size="16" /> 添加到标签
+            </button>
           </div>
 
           <div class="meta-list">
@@ -68,7 +77,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut } from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight, FolderPlus, Tags, X, ZoomIn, ZoomOut } from 'lucide-vue-next'
 import type { Asset } from '@/stores/media'
 import { mediaApi } from '@/api/media'
 
@@ -78,7 +87,7 @@ const props = defineProps<{
   initialIndex: number
 }>()
 
-defineEmits(['close'])
+defineEmits(['close', 'assign-to-album', 'assign-to-tag'])
 
 const currentIndex = ref(0)
 const zoom = ref(1)
@@ -95,7 +104,6 @@ const metaRows = computed(() => {
   const asset = activeAsset.value
   if (!asset) return []
 
-  // 右侧元数据优先展示后端解析出的 EXIF 和文件基础信息。
   return [
     { label: '拍摄时间', value: asset.metadata?.shotTime || asset.date || '未知' },
     { label: '相机', value: asset.metadata?.camera || '未知' },
@@ -109,7 +117,6 @@ const metaRows = computed(() => {
   ]
 })
 
-// 释放旧 Blob URL，避免频繁翻页预览时产生内存占用。
 const revokeObjectUrl = () => {
   if (objectUrl.value) {
     URL.revokeObjectURL(objectUrl.value)
@@ -117,7 +124,6 @@ const revokeObjectUrl = () => {
   }
 }
 
-// 通过带鉴权请求获取原始文件 Blob，再转换为浏览器可预览的本地 URL。
 const loadActiveAsset = async () => {
   const asset = activeAsset.value
   if (!asset) return
@@ -136,7 +142,6 @@ const loadActiveAsset = async () => {
   }
 }
 
-// 打开查看器时同步外部传入的起始序号。
 watch(
   () => [props.open, props.initialIndex, props.assets.length] as const,
   () => {
@@ -151,7 +156,6 @@ watch(
   { immediate: true }
 )
 
-// 切换当前媒体时重新加载原始文件。
 watch(currentIndex, () => {
   if (props.open) {
     loadActiveAsset()
@@ -166,7 +170,6 @@ const showNext = () => {
   if (hasNext.value) currentIndex.value += 1
 }
 
-// 图片缩放限制在可控范围内，避免过大或过小影响查看体验。
 const zoomIn = () => {
   if (isImage.value) zoom.value = Math.min(zoom.value + 0.25, 4)
 }
@@ -347,6 +350,32 @@ onBeforeUnmount(() => {
   font-size: 0.8rem;
   line-height: 1.5;
   word-break: break-all;
+}
+
+.meta-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.meta-btn {
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  color: var(--text);
+  background: var(--surface-hover);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.meta-btn.primary {
+  border: none;
+  color: #fff;
+  background: var(--accent);
 }
 
 .meta-list {

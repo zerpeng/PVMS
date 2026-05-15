@@ -25,10 +25,15 @@ const router = createRouter({
       component: () => import('@/views/Project.vue'),
       meta: { layout: 'app', requiresAuth: true },
     },
+    {
+      path: '/album-tags',
+      name: 'album-tags',
+      component: () => import('@/views/AlbumTags.vue'),
+      meta: { layout: 'app', requiresAuth: true },
+    },
   ],
 })
 
-// 解析 JWT 载荷，用于在前端路由层提前判断 Token 是否过期。
 const parseJwtPayload = (token: string) => {
   const payload = token.split('.')[1]
   if (!payload) return null
@@ -43,7 +48,6 @@ const parseJwtPayload = (token: string) => {
   return JSON.parse(json)
 }
 
-// 校验本地 Token 是否存在、格式正确且未过期；无效时主动清理缓存。
 const hasValidToken = () => {
   const token = localStorage.getItem('token')
   if (!token || token === 'undefined' || token === 'null') {
@@ -63,7 +67,6 @@ const hasValidToken = () => {
   }
 }
 
-// 全局路由守卫：除 public 页面外默认都需要登录，避免新增页面漏配 requiresAuth。
 router.beforeEach((to, from, next) => {
   const isPublicPage = to.meta.public === true
   const tokenValid = hasValidToken()

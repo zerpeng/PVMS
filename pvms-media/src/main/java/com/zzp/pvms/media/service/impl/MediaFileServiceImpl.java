@@ -34,24 +34,19 @@ public class MediaFileServiceImpl extends ServiceImpl<MediaFileMapper, MediaFile
     private RabbitTemplate rabbitTemplate;
 
     @Override
-    public Page<MediaFile> queryPage(int current, int size, Integer mediaType) {
+    public Page<MediaFile> queryPage(int current, int size, Integer mediaType, Long albumId, Long tagId) {
         Page<MediaFile> page = new Page<>(current, size);
-        LambdaQueryWrapper<MediaFile> wrapper = new LambdaQueryWrapper<>();
-        if (mediaType != null) {
-            wrapper.eq(MediaFile::getMediaType, mediaType);
-        }
-        // 优先按拍摄时间倒序
-        wrapper.orderByDesc(MediaFile::getShotTime).orderByDesc(MediaFile::getCreateTime);
-        return page(page, wrapper);
+        return (Page<MediaFile>) baseMapper.selectActivePage(page, mediaType, albumId, tagId);
+    }
+
+    @Override
+    public MediaFile getActiveById(Long id) {
+        return baseMapper.selectActiveById(id);
     }
 
     @Override
     public List<Map<String, Object>> getTimeLine() {
-        // 简单的按日期聚合计数逻辑
-        return this.baseMapper.selectMaps(new LambdaQueryWrapper<MediaFile>()
-                .select(MediaFile::getShotTime)
-                .groupBy(MediaFile::getShotTime)
-                .orderByDesc(MediaFile::getShotTime));
+        return baseMapper.selectActiveTimeline();
     }
 
     @Override
@@ -59,23 +54,21 @@ public class MediaFileServiceImpl extends ServiceImpl<MediaFileMapper, MediaFile
         String filePath = msg.getFilePath();
         File file = new File(filePath);
         if (!file.exists()) {
-            log.warn("文件不存在，跳过处理: {}", filePath);
+            log.warn("File does not exist, skip processing: {}", filePath);
             return;
         }
 
-        // 1. 检查是否已经存在该路径
         MediaFile existingFile = getOne(new LambdaQueryWrapper<MediaFile>()
-                .eq(MediaFile::getFilePath, filePath));
+                .eq(MediaFile::getFilePath, filePath)
+                .eq(MediaFile::getDelFlag, 0));
         if (existingFile != null) {
-            log.debug("文件已在数据库中，跳过: {}", filePath);
+            log.debug("File already exists in database, skip: {}", filePath);
             return;
         }
 
         try {
-            // 2. 计算文件哈希 (MD5)
             String fileHash = DigestUtil.md5Hex(file);
 
-            // 3. 构建媒体对象
             MediaFile mediaFile = new MediaFile();
             mediaFile.setFileName(file.getName());
             mediaFile.setFilePath(filePath);
@@ -85,18 +78,14 @@ public class MediaFileServiceImpl extends ServiceImpl<MediaFileMapper, MediaFile
             mediaFile.setFileFormat(getFileExtension(file.getName()));
             mediaFile.setMediaType(determineMediaType(mediaFile.getFileFormat()));
 
-            // 4. 解析元数据
             extractExif(file, mediaFile);
 
-            // 5. 保存入库
             save(mediaFile);
-            log.info("成功解析并入库: {}", filePath);
+            log.info("Metadata extracted and saved: {}", filePath);
 
-            // 6. 发送消息给 pvms-processor 生成缩略图
             sendThumbnailMsg(mediaFile);
-
         } catch (Exception e) {
-            log.error("处理元数据异常: {}", filePath, e);
+            log.error("Process metadata failed: {}", filePath, e);
         }
     }
 
@@ -104,7 +93,7 @@ public class MediaFileServiceImpl extends ServiceImpl<MediaFileMapper, MediaFile
         MediaProcessMsg msg = MediaProcessMsg.builder()
                 .mediaId(mediaFile.getId())
                 .filePath(mediaFile.getFilePath())
-                .taskType(2) // 2: 生成缩略图
+                .taskType(2)
                 .build();
         rabbitTemplate.convertAndSend(MqConstants.MEDIA_EXCHANGE, MqConstants.THUMBNAIL_ROUTING_KEY, msg);
     }
@@ -112,7 +101,7 @@ public class MediaFileServiceImpl extends ServiceImpl<MediaFileMapper, MediaFile
     private void extractExif(File file, MediaFile mediaFile) {
         try {
             Metadata metadata = ImageMetadataReader.readMetadata(file);
-            
+
             ExifIFD0Directory ifd0Dir = metadata.getFirstDirectoryOfType(ExifIFD0Directory.class);
             if (ifd0Dir != null) {
                 mediaFile.setCameraMake(ifd0Dir.getString(ExifIFD0Directory.TAG_MAKE));
@@ -127,7 +116,7 @@ public class MediaFileServiceImpl extends ServiceImpl<MediaFileMapper, MediaFile
                 mediaFile.setFocalLength(subIfdDir.getInteger(ExifSubIFDDirectory.TAG_FOCAL_LENGTH));
                 mediaFile.setWidth(subIfdDir.getInteger(ExifSubIFDDirectory.TAG_EXIF_IMAGE_WIDTH));
                 mediaFile.setHeight(subIfdDir.getInteger(ExifSubIFDDirectory.TAG_EXIF_IMAGE_HEIGHT));
-                
+
                 Date date = subIfdDir.getDate(ExifSubIFDDirectory.TAG_DATETIME_ORIGINAL);
                 if (date != null) {
                     mediaFile.setShotTime(LocalDateTime.ofInstant(date.toInstant(), ZoneId.systemDefault()));
@@ -139,9 +128,8 @@ public class MediaFileServiceImpl extends ServiceImpl<MediaFileMapper, MediaFile
                 mediaFile.setGpsLatitude(new java.math.BigDecimal(String.valueOf(gpsDir.getGeoLocation().getLatitude())));
                 mediaFile.setGpsLongitude(new java.math.BigDecimal(String.valueOf(gpsDir.getGeoLocation().getLongitude())));
             }
-
         } catch (Exception e) {
-            log.warn("EXIF 解析失败 (非图片或损坏): {}", file.getName());
+            log.warn("EXIF parse failed: {}", file.getName());
         }
     }
 

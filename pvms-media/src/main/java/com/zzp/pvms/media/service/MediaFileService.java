@@ -9,19 +9,11 @@ import java.util.List;
 import java.util.Map;
 
 public interface MediaFileService extends IService<MediaFile> {
-    /**
-     * 处理元数据提取任务
-     * @param msg 消息
-     */
     void processMetadata(MediaProcessMsg msg);
 
-    /**
-     * 分页查询媒体文件
-     */
-    Page<MediaFile> queryPage(int current, int size, Integer mediaType);
+    Page<MediaFile> queryPage(int current, int size, Integer mediaType, Long albumId, Long tagId);
 
-    /**
-     * 获取时间线聚合数据 (按日期分组计数)
-     */
+    MediaFile getActiveById(Long id);
+
     List<Map<String, Object>> getTimeLine();
 }

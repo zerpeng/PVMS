@@ -68,12 +68,10 @@ public class MonitorDirectoryServiceImpl extends ServiceImpl<MonitorDirectoryMap
     private MonitorDirectory restoreDirectory(MonitorDirectory existingDirectory, MonitorDirectory requestDirectory) {
         existingDirectory.setIsRecursive(requestDirectory.getIsRecursive());
         existingDirectory.setScanStatus(requestDirectory.getScanStatus());
-        existingDirectory.setLastScanTime(null);
         existingDirectory.setUpdateTime(LocalDateTime.now());
-        existingDirectory.setDelFlag(0);
 
         log.info("Restore monitor directory: {}", existingDirectory.getDirPath());
-        updateById(existingDirectory);
+        baseMapper.restoreById(existingDirectory);
         return getById(existingDirectory.getId());
     }
 }

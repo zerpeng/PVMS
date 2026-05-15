@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.zzp.pvms.media.domain.MonitorDirectory;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 public interface MonitorDirectoryMapper extends BaseMapper<MonitorDirectory> {
     @Select("""
@@ -13,4 +14,15 @@ public interface MonitorDirectoryMapper extends BaseMapper<MonitorDirectory> {
             LIMIT 1
             """)
     MonitorDirectory selectAnyByPath(@Param("path") String path);
+
+    @Update("""
+            UPDATE monitor_directory
+            SET is_recursive = #{isRecursive},
+                scan_status = #{scanStatus},
+                last_scan_time = NULL,
+                update_time = #{updateTime},
+                del_flag = 0
+            WHERE id = #{id}
+            """)
+    int restoreById(MonitorDirectory directory);
 }

@@ -6,8 +6,8 @@
     </div>
 
     <ul class="nav-list">
-      <li 
-        v-for="item in menuItems" 
+      <li
+        v-for="item in menuItems"
         :key="item.label"
         :class="['nav-item', { active: item.routeName && route.name === item.routeName, disabled: !item.routeName }]"
         @click="goToMenu(item.routeName)"
@@ -15,11 +15,11 @@
         <component :is="item.icon" class="nav-icon" />
         {{ item.label }}
       </li>
-      
+
       <div class="divider"></div>
-      
-      <li class="nav-item"><Cpu class="nav-icon" />AI 处理器</li>
-      <li class="nav-item"><Settings class="nav-icon" />系统设置</li>
+
+      <li class="nav-item disabled"><Cpu class="nav-icon" />AI 处理器</li>
+      <li class="nav-item disabled"><Settings class="nav-icon" />系统设置</li>
     </ul>
 
     <div class="storage-card">
@@ -34,9 +34,15 @@
 
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
-import { 
-  Aperture, LayoutGrid, FolderOpen, Tag, 
-  Heart, Clock, Cpu, Settings 
+import {
+  Aperture,
+  LayoutGrid,
+  FolderOpen,
+  Tag,
+  Heart,
+  Clock,
+  Cpu,
+  Settings,
 } from 'lucide-vue-next'
 
 const route = useRoute()
@@ -45,12 +51,11 @@ const router = useRouter()
 const menuItems = [
   { label: '媒体库', icon: LayoutGrid, routeName: 'library' },
   { label: '项目工程', icon: FolderOpen, routeName: 'projects' },
-  { label: '智能标签', icon: Tag, routeName: '' },
+  { label: '相册标签', icon: Tag, routeName: 'album-tags' },
   { label: '我的收藏', icon: Heart, routeName: '' },
   { label: '最近访问', icon: Clock, routeName: '' },
 ]
 
-// 仅已实现的菜单项执行路由跳转，避免未实现入口误高亮。
 const goToMenu = (routeName: string) => {
   if (!routeName) return
   router.push({ name: routeName })
