@@ -11,7 +11,7 @@ import java.util.Map;
 public interface MediaFileService extends IService<MediaFile> {
     void processMetadata(MediaProcessMsg msg);
 
-    Page<MediaFile> queryPage(int current, int size, Integer mediaType, Long albumId, Long tagId);
+    Page<MediaFile> queryPage(int current, int size, Integer mediaType, Long albumId, Long tagId, Boolean favoriteOnly, String username);
 
     MediaFile getActiveById(Long id);
 

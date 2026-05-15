@@ -28,8 +28,8 @@
       </div>
 
       <div class="card-actions">
-        <button class="action-btn" type="button" @click.stop="toggleHeart">
-          <Heart :class="{ 'is-active': isHearted }" :fill="isHearted ? 'currentColor' : 'none'" />
+        <button class="action-btn" type="button" :disabled="favoriteDisabled" @click.stop="$emit('toggle-favorite')">
+          <Heart :class="{ 'is-active': favorited }" :fill="favorited ? 'currentColor' : 'none'" />
         </button>
         <button class="action-btn" type="button" @click.stop="$emit('preview')">
           <Eye />
@@ -65,20 +65,17 @@ import { mediaApi } from '@/api/media'
 const props = defineProps<{
   asset: Asset
   selected?: boolean
+  favorited?: boolean
+  favoriteDisabled?: boolean
   showRemoveAction?: boolean
   removeDisabled?: boolean
   removeTitle?: string
 }>()
 
-defineEmits(['toggle-select', 'preview', 'remove'])
+defineEmits(['toggle-select', 'preview', 'remove', 'toggle-favorite'])
 
-const isHearted = ref(false)
 const hasError = ref(false)
 const thumbnailUrl = ref('')
-
-const toggleHeart = () => {
-  isHearted.value = !isHearted.value
-}
 
 const revokeThumbnailUrl = () => {
   if (thumbnailUrl.value) {

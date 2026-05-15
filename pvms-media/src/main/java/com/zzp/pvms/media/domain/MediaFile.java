@@ -46,6 +46,9 @@ public class MediaFile {
 
     @TableLogic
     private Integer delFlag;
+
+    @TableField(exist = false)
+    private Boolean favorited;
     
     private LocalDateTime createTime;
     private LocalDateTime updateTime;

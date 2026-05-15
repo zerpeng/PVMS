@@ -102,6 +102,14 @@ export const mediaApi = {
     return request.delete<any, any>(`/media/tags/${tagId}/media/${mediaId}`)
   },
 
+  addFavorite(mediaId: string | number) {
+    return request.post<any, any>(`/media/favorites/${mediaId}`)
+  },
+
+  removeFavorite(mediaId: string | number) {
+    return request.delete<any, any>(`/media/favorites/${mediaId}`)
+  },
+
   fetchOriginalBlob(id: string | number) {
     return request.get<Blob, Blob>(`/media/files/${id}/content`, {
       responseType: 'blob'

@@ -47,7 +47,7 @@ public class AlbumController {
     @DeleteMapping("/{albumId}/media/{mediaId}")
     public Result<String> removeMedia(@PathVariable Long albumId, @PathVariable Long mediaId) {
         albumService.removeMediaFromAlbum(albumId, mediaId);
-        return Result.success("绉婚櫎鎴愬姛");
+        return Result.success("移除成功！！！");
     }
 
     @DeleteMapping("/{id}")

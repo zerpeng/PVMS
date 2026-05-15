@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -33,8 +34,10 @@ public class MediaFileController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) Integer mediaType,
             @RequestParam(required = false) Long albumId,
-            @RequestParam(required = false) Long tagId) {
-        return Result.success(mediaFileService.queryPage(current, size, mediaType, albumId, tagId));
+            @RequestParam(required = false) Long tagId,
+            @RequestParam(required = false) Boolean favoriteOnly,
+            @RequestHeader(value = "X-User-Name", required = false) String username) {
+        return Result.success(mediaFileService.queryPage(current, size, mediaType, albumId, tagId, favoriteOnly, username));
     }
 
     @GetMapping("/timeline")

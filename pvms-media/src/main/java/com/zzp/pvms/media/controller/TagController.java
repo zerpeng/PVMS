@@ -64,7 +64,7 @@ public class TagController {
     @DeleteMapping("/{tagId}/media/{mediaId}")
     public Result<String> removeMedia(@PathVariable Long tagId, @PathVariable Long mediaId) {
         tagService.removeTagFromMedia(mediaId, tagId);
-        return Result.success("绉婚櫎鎴愬姛");
+        return Result.success("移除成功！！！");
     }
 
     @GetMapping("/media/{mediaId}")

@@ -10,6 +10,7 @@ export interface Asset {
   url?: string
   filePath?: string
   fileSize?: number
+  favorited?: boolean
   original?: Record<string, any>
   metadata?: {
     camera?: string

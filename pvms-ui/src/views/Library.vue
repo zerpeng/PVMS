@@ -37,8 +37,11 @@
         :key="asset.id"
         :asset="asset"
         :selected="selectedIds.includes(asset.id)"
+        :favorited="asset.favorited"
+        :favorite-disabled="loading"
         @preview="openViewer(asset.id)"
         @toggle-select="toggleSelection(asset.id)"
+        @toggle-favorite="toggleFavorite(asset.id)"
       />
     </div>
 
@@ -269,6 +272,7 @@ const loadMediaData = async () => {
       url: item.thumbnailPath || '',
       filePath: item.filePath,
       fileSize: item.fileSize,
+      favorited: Boolean(item.favorited),
       original: item,
       metadata: {
         camera: item.cameraModel ? `${item.cameraMake || ''} ${item.cameraModel}` : '设备信息未知',
@@ -297,6 +301,32 @@ const toggleSelection = (assetId: string) => {
   selectedIds.value = selectedIds.value.includes(assetId)
     ? selectedIds.value.filter(id => id !== assetId)
     : [...selectedIds.value, assetId]
+}
+
+const updateAssetFavoriteState = (assetId: string, favorited: boolean) => {
+  mediaStore.setAssets(
+    mediaStore.assets.map(asset => asset.id === assetId ? { ...asset, favorited } : asset)
+  )
+}
+
+const toggleFavorite = async (assetId: string) => {
+  const asset = mediaStore.assets.find(item => item.id === assetId)
+  if (!asset || loading.value) return
+
+  loading.value = true
+  try {
+    if (asset.favorited) {
+      await mediaApi.removeFavorite(assetId)
+      updateAssetFavoriteState(assetId, false)
+    } else {
+      await mediaApi.addFavorite(assetId)
+      updateAssetFavoriteState(assetId, true)
+    }
+  } catch (error: any) {
+    showMessageDialog('收藏失败', extractErrorMessage(error, '更新收藏状态失败'), 'error')
+  } finally {
+    loading.value = false
+  }
 }
 
 const toggleSelectAll = () => {

@@ -52,7 +52,7 @@ const menuItems = [
   { label: '媒体库', icon: LayoutGrid, routeName: 'library' },
   { label: '项目工程', icon: FolderOpen, routeName: 'projects' },
   { label: '相册标签', icon: Tag, routeName: 'album-tags' },
-  { label: '我的收藏', icon: Heart, routeName: '' },
+  { label: '我的收藏', icon: Heart, routeName: 'favorites' },
   { label: '最近访问', icon: Clock, routeName: '' },
 ]
 

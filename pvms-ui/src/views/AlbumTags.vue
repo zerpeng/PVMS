@@ -180,11 +180,14 @@
           :key="asset.id"
           :asset="asset"
           :selected="selectedMediaIds.includes(asset.id)"
+          :favorited="asset.favorited"
+          :favorite-disabled="loading"
           :show-remove-action="true"
           :remove-disabled="loading"
           :remove-title="activeTab === 'albums' ? '从当前相册移除' : '从当前标签移除'"
           @preview="openViewer(asset.id)"
           @toggle-select="toggleMediaSelection(asset.id)"
+          @toggle-favorite="toggleFavorite(asset.id)"
           @remove="removeSingleMedia(asset.id)"
         />
       </div>
@@ -479,6 +482,7 @@ const adaptMediaAssets = (rawList: any[]): Asset[] =>
     url: item.thumbnailPath || '',
     filePath: item.filePath,
     fileSize: item.fileSize,
+    favorited: Boolean(item.favorited),
     original: item,
     metadata: {
       camera: item.cameraModel ? `${item.cameraMake || ''} ${item.cameraModel}`.trim() : '设备信息未知',
@@ -557,6 +561,30 @@ const toggleMediaSelection = (id: string) => {
   selectedMediaIds.value = selectedMediaIds.value.includes(id)
     ? selectedMediaIds.value.filter(item => item !== id)
     : [...selectedMediaIds.value, id]
+}
+
+const updateMediaFavoriteState = (assetId: string, favorited: boolean) => {
+  mediaAssets.value = mediaAssets.value.map(asset => asset.id === assetId ? { ...asset, favorited } : asset)
+}
+
+const toggleFavorite = async (assetId: string) => {
+  const asset = mediaAssets.value.find(item => item.id === assetId)
+  if (!asset || loading.value) return
+
+  loading.value = true
+  try {
+    if (asset.favorited) {
+      await mediaApi.removeFavorite(assetId)
+      updateMediaFavoriteState(assetId, false)
+    } else {
+      await mediaApi.addFavorite(assetId)
+      updateMediaFavoriteState(assetId, true)
+    }
+  } catch (error: any) {
+    showMessageDialog('收藏失败', extractErrorMessage(error, '更新收藏状态失败'), 'error')
+  } finally {
+    loading.value = false
+  }
 }
 
 const switchTab = (tab: TabKey) => {

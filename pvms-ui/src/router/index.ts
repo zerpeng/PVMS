@@ -31,6 +31,12 @@ const router = createRouter({
       component: () => import('@/views/AlbumTags.vue'),
       meta: { layout: 'app', requiresAuth: true },
     },
+    {
+      path: '/favorites',
+      name: 'favorites',
+      component: () => import('@/views/Favorites.vue'),
+      meta: { layout: 'app', requiresAuth: true },
+    },
   ],
 })
 

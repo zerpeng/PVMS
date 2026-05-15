@@ -85,6 +85,21 @@ CREATE TABLE `media_file`  (
 ) ENGINE = InnoDB AUTO_INCREMENT = 30 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '媒体文件元数据表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
+-- Table structure for media_favorite
+-- ----------------------------
+DROP TABLE IF EXISTS `media_favorite`;
+CREATE TABLE `media_favorite`  (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `username` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '用户名',
+  `media_id` bigint NOT NULL COMMENT '媒体ID',
+  `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_username_media`(`username` ASC, `media_id` ASC) USING BTREE,
+  INDEX `idx_media`(`media_id` ASC) USING BTREE,
+  INDEX `idx_username`(`username` ASC) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户媒体收藏表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
 -- Table structure for media_tag_relation
 -- ----------------------------
 DROP TABLE IF EXISTS `media_tag_relation`;

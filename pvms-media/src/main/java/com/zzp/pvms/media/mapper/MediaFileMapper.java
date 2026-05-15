@@ -14,9 +14,13 @@ public interface MediaFileMapper extends BaseMapper<MediaFile> {
 
     @Select("""
             <script>
-            SELECT mf.*
+            SELECT mf.*,
+                   CASE WHEN fav.id IS NULL THEN 0 ELSE 1 END AS favorited
             FROM media_file mf
             INNER JOIN monitor_directory md ON md.id = mf.directory_id
+            LEFT JOIN media_favorite fav
+              ON fav.media_id = mf.id
+             AND fav.username = #{username}
             WHERE mf.del_flag = 0
               AND md.del_flag = 0
               <if test="mediaType != null">
@@ -38,6 +42,9 @@ public interface MediaFileMapper extends BaseMapper<MediaFile> {
                     AND mtr.tag_id = #{tagId}
                 )
               </if>
+              <if test="favoriteOnly != null and favoriteOnly">
+                AND fav.id IS NOT NULL
+              </if>
             ORDER BY mf.shot_time DESC, mf.create_time DESC
             </script>
             """)
@@ -45,7 +52,9 @@ public interface MediaFileMapper extends BaseMapper<MediaFile> {
             Page<MediaFile> page,
             @Param("mediaType") Integer mediaType,
             @Param("albumId") Long albumId,
-            @Param("tagId") Long tagId
+            @Param("tagId") Long tagId,
+            @Param("favoriteOnly") Boolean favoriteOnly,
+            @Param("username") String username
     );
 
     @Select("""

@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.io.File;
 import java.time.LocalDateTime;
@@ -34,9 +35,9 @@ public class MediaFileServiceImpl extends ServiceImpl<MediaFileMapper, MediaFile
     private RabbitTemplate rabbitTemplate;
 
     @Override
-    public Page<MediaFile> queryPage(int current, int size, Integer mediaType, Long albumId, Long tagId) {
+    public Page<MediaFile> queryPage(int current, int size, Integer mediaType, Long albumId, Long tagId, Boolean favoriteOnly, String username) {
         Page<MediaFile> page = new Page<>(current, size);
-        return (Page<MediaFile>) baseMapper.selectActivePage(page, mediaType, albumId, tagId);
+        return (Page<MediaFile>) baseMapper.selectActivePage(page, mediaType, albumId, tagId, favoriteOnly, resolveUsername(username));
     }
 
     @Override
@@ -140,5 +141,9 @@ public class MediaFileServiceImpl extends ServiceImpl<MediaFileMapper, MediaFile
 
     private Integer determineMediaType(String extension) {
         return "mp4".equals(extension) || "mov".equals(extension) ? 2 : 1;
+    }
+
+    private String resolveUsername(String username) {
+        return StringUtils.hasText(username) ? username : "anonymous";
     }
 }
