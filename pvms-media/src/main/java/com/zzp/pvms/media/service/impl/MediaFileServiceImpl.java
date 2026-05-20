@@ -1,7 +1,6 @@
 package com.zzp.pvms.media.service.impl;
 
 import cn.hutool.crypto.digest.DigestUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.drew.imaging.ImageMetadataReader;
@@ -59,27 +58,22 @@ public class MediaFileServiceImpl extends ServiceImpl<MediaFileMapper, MediaFile
             return;
         }
 
-        MediaFile existingFile = getOne(new LambdaQueryWrapper<MediaFile>()
-                .eq(MediaFile::getFilePath, filePath)
-                .eq(MediaFile::getDelFlag, 0));
-        if (existingFile != null) {
-            log.debug("File already exists in database, skip: {}", filePath);
-            return;
-        }
-
         try {
-            String fileHash = DigestUtil.md5Hex(file);
+            MediaFile mediaFile = buildMediaFile(file, filePath, msg.getDirectoryId());
+            MediaFile existingFile = baseMapper.selectAnyByFilePath(filePath);
 
-            MediaFile mediaFile = new MediaFile();
-            mediaFile.setFileName(file.getName());
-            mediaFile.setFilePath(filePath);
-            mediaFile.setFileHash(fileHash);
-            mediaFile.setFileSize(file.length());
-            mediaFile.setDirectoryId(msg.getDirectoryId());
-            mediaFile.setFileFormat(getFileExtension(file.getName()));
-            mediaFile.setMediaType(determineMediaType(mediaFile.getFileFormat()));
+            if (existingFile != null && Integer.valueOf(0).equals(existingFile.getDelFlag())) {
+                log.debug("File already exists in database, skip: {}", filePath);
+                return;
+            }
 
-            extractExif(file, mediaFile);
+            if (existingFile != null) {
+                mediaFile.setId(existingFile.getId());
+                baseMapper.restoreById(mediaFile);
+                log.info("Metadata restored and updated: {}", filePath);
+                sendThumbnailMsg(mediaFile);
+                return;
+            }
 
             save(mediaFile);
             log.info("Metadata extracted and saved: {}", filePath);
@@ -88,6 +82,22 @@ public class MediaFileServiceImpl extends ServiceImpl<MediaFileMapper, MediaFile
         } catch (Exception e) {
             log.error("Process metadata failed: {}", filePath, e);
         }
+    }
+
+    private MediaFile buildMediaFile(File file, String filePath, Long directoryId) {
+        String fileHash = DigestUtil.md5Hex(file);
+
+        MediaFile mediaFile = new MediaFile();
+        mediaFile.setFileName(file.getName());
+        mediaFile.setFilePath(filePath);
+        mediaFile.setFileHash(fileHash);
+        mediaFile.setFileSize(file.length());
+        mediaFile.setDirectoryId(directoryId);
+        mediaFile.setFileFormat(getFileExtension(file.getName()));
+        mediaFile.setMediaType(determineMediaType(mediaFile.getFileFormat()));
+
+        extractExif(file, mediaFile);
+        return mediaFile;
     }
 
     private void sendThumbnailMsg(MediaFile mediaFile) {

@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zzp.pvms.media.domain.MediaFile;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
 import java.util.Map;
@@ -56,6 +57,43 @@ public interface MediaFileMapper extends BaseMapper<MediaFile> {
             @Param("favoriteOnly") Boolean favoriteOnly,
             @Param("username") String username
     );
+
+    @Select("""
+            SELECT *
+            FROM media_file
+            WHERE file_path = #{filePath}
+            LIMIT 1
+            """)
+    MediaFile selectAnyByFilePath(@Param("filePath") String filePath);
+
+    @Update("""
+            UPDATE media_file
+            SET file_name = #{fileName},
+                file_hash = #{fileHash},
+                file_size = #{fileSize},
+                media_type = #{mediaType},
+                file_format = #{fileFormat},
+                shot_time = #{shotTime},
+                width = #{width},
+                height = #{height},
+                duration = #{duration},
+                camera_make = #{cameraMake},
+                camera_model = #{cameraModel},
+                lens_model = #{lensModel},
+                f_number = #{fNumber},
+                exposure_time = #{exposureTime},
+                iso = #{iso},
+                focal_length = #{focalLength},
+                gps_latitude = #{gpsLatitude},
+                gps_longitude = #{gpsLongitude},
+                location_name = #{locationName},
+                thumbnail_path = #{thumbnailPath},
+                directory_id = #{directoryId},
+                del_flag = 0,
+                update_time = NOW()
+            WHERE id = #{id}
+            """)
+    int restoreById(MediaFile mediaFile);
 
     @Select("""
             SELECT mf.*

@@ -41,6 +41,7 @@ import {
   Tag,
   Heart,
   Clock,
+  Users,
   Cpu,
   Settings,
 } from 'lucide-vue-next'
@@ -53,6 +54,7 @@ const menuItems = [
   { label: '项目工程', icon: FolderOpen, routeName: 'projects' },
   { label: '相册标签', icon: Tag, routeName: 'album-tags' },
   { label: '我的收藏', icon: Heart, routeName: 'favorites' },
+  { label: '用户管理', icon: Users, routeName: 'users' },
   { label: '最近访问', icon: Clock, routeName: '' },
 ]
 

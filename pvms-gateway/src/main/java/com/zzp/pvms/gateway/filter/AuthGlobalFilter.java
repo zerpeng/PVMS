@@ -90,7 +90,9 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
 
                         // Token 校验通过后，把用户名透传给下游服务，方便后续接口做用户级数据隔离。
                         ServerWebExchange mutatedExchange = exchange.mutate()
-                                .request(builder -> builder.header("X-User-Name", claims.getSubject()))
+                                .request(builder -> builder
+                                        .header("X-User-Name", claims.getSubject())
+                                        .header("X-User-Roles", String.valueOf(claims.get("roles"))))
                                 .build();
                         return chain.filter(mutatedExchange);
                     });

@@ -20,6 +20,10 @@ export const mediaApi = {
     return request.get<any, any>('/media/files', { params })
   },
 
+  removeMediaFile(id: string | number) {
+    return request.delete<any, any>(`/media/files/${id}`)
+  },
+
   fetchDirectories() {
     return request.get<any, any>('/media/directories')
   },

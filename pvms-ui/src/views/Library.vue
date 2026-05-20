@@ -28,6 +28,9 @@
         <button class="ghost-btn" type="button" :disabled="selectedIds.length === 0" @click="clearSelection">
           清空选择
         </button>
+        <button class="danger-btn" type="button" :disabled="selectedIds.length === 0 || loading" @click="removeSelectedMedia">
+          <Trash2 :size="16" /> 移除
+        </button>
       </div>
     </div>
 
@@ -39,9 +42,13 @@
         :selected="selectedIds.includes(asset.id)"
         :favorited="asset.favorited"
         :favorite-disabled="loading"
+        :show-remove-action="true"
+        :remove-disabled="loading"
+        remove-title="移除媒体"
         @preview="openViewer(asset.id)"
         @toggle-select="toggleSelection(asset.id)"
         @toggle-favorite="toggleFavorite(asset.id)"
+        @remove="removeSingleMedia(asset.id)"
       />
     </div>
 
@@ -109,7 +116,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { FolderPlus, Tags } from 'lucide-vue-next'
+import { FolderPlus, Tags, Trash2 } from 'lucide-vue-next'
 import AssetCard from '@/components/gallery/AssetCard.vue'
 import MediaViewer from '@/components/gallery/MediaViewer.vue'
 import { useMediaStore } from '@/stores/media'
@@ -329,6 +336,42 @@ const toggleFavorite = async (assetId: string) => {
   }
 }
 
+const removeMediaByIds = async (ids: string[]) => {
+  await Promise.all(ids.map(id => mediaApi.removeMediaFile(id)))
+  viewerOpen.value = false
+  selectedIds.value = selectedIds.value.filter(id => !ids.includes(id))
+  mediaStore.setAssets(mediaStore.assets.filter(asset => !ids.includes(asset.id)))
+}
+
+const removeSingleMedia = async (assetId: string) => {
+  if (!confirm('确认移除该媒体吗？')) return
+
+  loading.value = true
+  try {
+    await removeMediaByIds([assetId])
+    showMessageDialog('移除成功', '媒体已移除', 'success')
+  } catch (error: any) {
+    showMessageDialog('移除失败', extractErrorMessage(error, '移除媒体失败'), 'error')
+  } finally {
+    loading.value = false
+  }
+}
+
+const removeSelectedMedia = async () => {
+  if (selectedIds.value.length === 0) return
+  if (!confirm(`确认移除选中的 ${selectedIds.value.length} 个媒体吗？`)) return
+
+  loading.value = true
+  try {
+    await removeMediaByIds([...selectedIds.value])
+    showMessageDialog('移除成功', '选中的媒体已移除', 'success')
+  } catch (error: any) {
+    showMessageDialog('移除失败', extractErrorMessage(error, '批量移除媒体失败'), 'error')
+  } finally {
+    loading.value = false
+  }
+}
+
 const toggleSelectAll = () => {
   selectedIds.value = isAllSelected.value ? [] : mediaStore.assets.map(asset => asset.id)
 }
@@ -406,9 +449,11 @@ onMounted(async () => {
 .section-title { font-size: 1.1rem; color: var(--text-muted); }
 .section-subtitle { margin-top: 0.35rem; font-size: 0.85rem; color: var(--text-muted); }
 .view-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: flex-end; }
-.filter-btn, .ghost-btn, .select-all { display: flex; align-items: center; gap: 8px; padding: 0 1rem; height: 44px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
-.filter-btn:hover, .ghost-btn:hover { background: var(--surface-hover); transform: translateY(-2px); }
-.filter-btn:disabled, .ghost-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+.filter-btn, .ghost-btn, .select-all, .danger-btn { display: flex; align-items: center; gap: 8px; padding: 0 1rem; height: 44px; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
+.danger-btn { border: none; color: #fff; background: #dc2626; }
+.filter-btn:hover, .ghost-btn:hover, .danger-btn:hover { background: var(--surface-hover); transform: translateY(-2px); }
+.danger-btn:hover { background: #b91c1c; }
+.filter-btn:disabled, .ghost-btn:disabled, .danger-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 2.5rem; }
 .dialog-overlay { position: fixed; inset: 0; z-index: 360; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(15, 23, 42, 0.22); backdrop-filter: blur(4px); }
 .dialog-card { width: min(520px, 100%); padding: 28px; border-radius: 24px; background: var(--surface); border: 1px solid var(--border); box-shadow: 0 24px 80px rgba(15, 23, 42, 0.24); }
