@@ -10,7 +10,7 @@ import org.apache.ibatis.annotations.Update;
 @Mapper
 public interface TagMapper extends BaseMapper<Tag> {
     @Select("""
-            SELECT id, parent_id, name, tag_type, category, del_flag
+            SELECT id, parent_id, name, tag_type, category, create_username, del_flag
             FROM tag
             WHERE name = #{name}
               AND tag_type = #{tagType}
@@ -22,6 +22,7 @@ public interface TagMapper extends BaseMapper<Tag> {
             UPDATE tag
             SET parent_id = #{parentId},
                 category = #{category},
+                create_username = #{createUsername},
                 del_flag = 0
             WHERE id = #{id}
             """)

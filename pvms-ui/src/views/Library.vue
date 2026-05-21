@@ -6,7 +6,7 @@
         <p class="section-subtitle">{{ headerSubtitle }}</p>
       </div>
 
-      <div class="view-actions">
+      <div v-if="!authInfo.visitor" class="view-actions">
         <button
           v-if="activeFilter"
           class="ghost-btn"
@@ -41,8 +41,8 @@
         :asset="asset"
         :selected="selectedIds.includes(asset.id)"
         :favorited="asset.favorited"
-        :favorite-disabled="loading"
-        :show-remove-action="true"
+        :favorite-disabled="loading || authInfo.visitor"
+        :show-remove-action="!authInfo.visitor"
         :remove-disabled="loading"
         remove-title="移除媒体"
         @preview="openViewer(asset.id)"
@@ -121,6 +121,7 @@ import AssetCard from '@/components/gallery/AssetCard.vue'
 import MediaViewer from '@/components/gallery/MediaViewer.vue'
 import { useMediaStore } from '@/stores/media'
 import { mediaApi } from '@/api/media'
+import { getAuthInfo } from '@/utils/authz'
 
 type AssignType = 'album' | 'tag'
 type MessageType = 'info' | 'success' | 'error'
@@ -140,6 +141,7 @@ interface TagItem {
 const mediaStore = useMediaStore()
 const route = useRoute()
 const router = useRouter()
+const authInfo = computed(() => getAuthInfo())
 const isLoading = ref(false)
 const loading = ref(false)
 const viewerOpen = ref(false)

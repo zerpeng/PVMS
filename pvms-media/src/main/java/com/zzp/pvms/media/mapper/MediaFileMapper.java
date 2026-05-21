@@ -24,6 +24,19 @@ public interface MediaFileMapper extends BaseMapper<MediaFile> {
              AND fav.username = #{username}
             WHERE mf.del_flag = 0
               AND md.del_flag = 0
+              <if test="!superAdmin and albumId == null and tagId == null">
+                <choose>
+                  <when test="directoryIds != null and directoryIds.size() > 0">
+                    AND mf.directory_id IN
+                    <foreach collection="directoryIds" item="directoryId" open="(" separator="," close=")">
+                      #{directoryId}
+                    </foreach>
+                  </when>
+                  <otherwise>
+                    AND 1 = 0
+                  </otherwise>
+                </choose>
+              </if>
               <if test="mediaType != null">
                 AND mf.media_type = #{mediaType}
               </if>
@@ -33,6 +46,20 @@ public interface MediaFileMapper extends BaseMapper<MediaFile> {
                   FROM media_album_relation mar
                   WHERE mar.media_id = mf.id
                     AND mar.album_id = #{albumId}
+                )
+              </if>
+              <if test="albumId == null and !superAdmin and albumIds != null and albumIds.size() > 0">
+                AND (
+                  NOT EXISTS (SELECT 1 FROM media_album_relation mar_scope WHERE mar_scope.media_id = mf.id)
+                  OR EXISTS (
+                    SELECT 1
+                    FROM media_album_relation mar_scope
+                    WHERE mar_scope.media_id = mf.id
+                      AND mar_scope.album_id IN
+                      <foreach collection="albumIds" item="scopeAlbumId" open="(" separator="," close=")">
+                        #{scopeAlbumId}
+                      </foreach>
+                  )
                 )
               </if>
               <if test="tagId != null">
@@ -55,7 +82,10 @@ public interface MediaFileMapper extends BaseMapper<MediaFile> {
             @Param("albumId") Long albumId,
             @Param("tagId") Long tagId,
             @Param("favoriteOnly") Boolean favoriteOnly,
-            @Param("username") String username
+            @Param("username") String username,
+            @Param("superAdmin") boolean superAdmin,
+            @Param("directoryIds") List<Long> directoryIds,
+            @Param("albumIds") List<Long> albumIds
     );
 
     @Select("""

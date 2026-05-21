@@ -4,9 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zzp.pvms.common.exception.ApiException;
 import com.zzp.pvms.media.domain.MediaFavorite;
+import com.zzp.pvms.media.mapper.MediaFileMapper;
 import com.zzp.pvms.media.mapper.MediaFavoriteMapper;
 import com.zzp.pvms.media.service.MediaFavoriteService;
-import com.zzp.pvms.media.service.MediaFileService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,12 +18,12 @@ import java.time.LocalDateTime;
 public class MediaFavoriteServiceImpl extends ServiceImpl<MediaFavoriteMapper, MediaFavorite> implements MediaFavoriteService {
 
     @Autowired
-    private MediaFileService mediaFileService;
+    private MediaFileMapper mediaFileMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean addFavorite(String username, Long mediaId) {
-        if (mediaFileService.getActiveById(mediaId) == null) {
+        if (mediaFileMapper.selectActiveById(mediaId) == null) {
             throw new ApiException("媒体文件不存在");
         }
 

@@ -20,7 +20,7 @@
         </div>
       </div>
 
-      <div class="quick-actions">
+      <div v-if="!authInfo.visitor" class="quick-actions">
         <button class="primary-action" type="button" @click="openAssignDialog('album')">
           <FolderPlus :size="16" /> 添加到相册
         </button>
@@ -113,6 +113,7 @@ import { computed, reactive, ref } from 'vue'
 import { X, Camera, Download, FolderPlus, Tags, ImageIcon, Film } from 'lucide-vue-next'
 import { mediaApi } from '@/api/media'
 import { useMediaStore } from '@/stores/media'
+import { getAuthInfo } from '@/utils/authz'
 
 type AssignType = 'album' | 'tag'
 type MessageType = 'info' | 'success' | 'error'
@@ -130,6 +131,7 @@ interface TagItem {
 }
 
 const mediaStore = useMediaStore()
+const authInfo = computed(() => getAuthInfo())
 const loading = ref(false)
 const albums = ref<AlbumItem[]>([])
 const tags = ref<TagItem[]>([])

@@ -3,6 +3,7 @@ package com.zzp.pvms.media.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zzp.pvms.common.exception.ApiException;
+import com.zzp.pvms.media.domain.AuthContext;
 import com.zzp.pvms.media.domain.MonitorDirectory;
 import com.zzp.pvms.media.mapper.MonitorDirectoryMapper;
 import com.zzp.pvms.media.service.MonitorDirectoryService;
@@ -19,7 +20,8 @@ import java.util.List;
 public class MonitorDirectoryServiceImpl extends ServiceImpl<MonitorDirectoryMapper, MonitorDirectory> implements MonitorDirectoryService {
 
     @Override
-    public MonitorDirectory addDirectory(MonitorDirectory directory) {
+    public MonitorDirectory addDirectory(MonitorDirectory directory, AuthContext authContext) {
+        assertWritable(authContext);
         String path = directory.getDirPath();
         File file = new File(path);
 
@@ -36,11 +38,12 @@ public class MonitorDirectoryServiceImpl extends ServiceImpl<MonitorDirectoryMap
         if (directory.getCreateTime() == null) {
             directory.setCreateTime(LocalDateTime.now());
         }
+        directory.setCreateUsername(authContext.getUsername());
 
         MonitorDirectory existingDirectory = baseMapper.selectAnyByPath(path);
         if (existingDirectory != null) {
             if (Integer.valueOf(0).equals(existingDirectory.getDelFlag())) {
-                throw new ApiException("该目录已存在，不能再次添加");
+                throw new ApiException("目录已存在，不能重复添加");
             }
             return restoreDirectory(existingDirectory, directory);
         }
@@ -51,23 +54,56 @@ public class MonitorDirectoryServiceImpl extends ServiceImpl<MonitorDirectoryMap
     }
 
     @Override
-    public List<MonitorDirectory> listActiveDirectories() {
-        return list(new LambdaQueryWrapper<MonitorDirectory>()
-                .orderByDesc(MonitorDirectory::getCreateTime));
+    public List<MonitorDirectory> listActiveDirectories(AuthContext authContext) {
+        LambdaQueryWrapper<MonitorDirectory> wrapper = new LambdaQueryWrapper<MonitorDirectory>()
+                .orderByDesc(MonitorDirectory::getCreateTime);
+        applyVisibility(wrapper, authContext);
+        return list(wrapper);
     }
 
     @Override
-    public List<MonitorDirectory> listByIdsForScan(List<Long> ids) {
+    public List<MonitorDirectory> listByIdsForScan(List<Long> ids, AuthContext authContext) {
         if (ids == null || ids.isEmpty()) {
             return Collections.emptyList();
         }
-        return list(new LambdaQueryWrapper<MonitorDirectory>()
-                .in(MonitorDirectory::getId, ids));
+        LambdaQueryWrapper<MonitorDirectory> wrapper = new LambdaQueryWrapper<MonitorDirectory>()
+                .in(MonitorDirectory::getId, ids);
+        applyVisibility(wrapper, authContext);
+        return list(wrapper);
+    }
+
+    private void applyVisibility(LambdaQueryWrapper<MonitorDirectory> wrapper, AuthContext authContext) {
+        if (authContext.isSuperAdmin()) {
+            return;
+        }
+        List<Long> permittedIds = authContext.getDirectoryIds();
+        if (authContext.isVisitor()) {
+            if (permittedIds.isEmpty()) {
+                wrapper.eq(MonitorDirectory::getId, -1L);
+            } else {
+                wrapper.in(MonitorDirectory::getId, permittedIds);
+            }
+            return;
+        }
+
+        wrapper.and(scope -> {
+            scope.eq(MonitorDirectory::getCreateUsername, authContext.getUsername());
+            if (!permittedIds.isEmpty()) {
+                scope.or().in(MonitorDirectory::getId, permittedIds);
+            }
+        });
+    }
+
+    private void assertWritable(AuthContext authContext) {
+        if (!authContext.canWrite()) {
+            throw new ApiException("访客无新增目录权限");
+        }
     }
 
     private MonitorDirectory restoreDirectory(MonitorDirectory existingDirectory, MonitorDirectory requestDirectory) {
         existingDirectory.setIsRecursive(requestDirectory.getIsRecursive());
         existingDirectory.setScanStatus(requestDirectory.getScanStatus());
+        existingDirectory.setCreateUsername(requestDirectory.getCreateUsername());
         existingDirectory.setUpdateTime(LocalDateTime.now());
 
         log.info("Restore monitor directory: {}", existingDirectory.getDirPath());

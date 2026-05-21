@@ -20,14 +20,22 @@ public class MediaFavoriteController {
     @PostMapping("/{mediaId}")
     public Result<Boolean> addFavorite(
             @RequestHeader(value = "X-User-Name", required = false) String username,
+            @RequestHeader(value = "X-Visitor", required = false) String visitor,
             @PathVariable Long mediaId) {
+        if (Boolean.parseBoolean(visitor)) {
+            return Result.failed("访客无收藏权限");
+        }
         return Result.success(mediaFavoriteService.addFavorite(username, mediaId));
     }
 
     @DeleteMapping("/{mediaId}")
     public Result<Boolean> removeFavorite(
             @RequestHeader(value = "X-User-Name", required = false) String username,
+            @RequestHeader(value = "X-Visitor", required = false) String visitor,
             @PathVariable Long mediaId) {
+        if (Boolean.parseBoolean(visitor)) {
+            return Result.failed("访客无收藏权限");
+        }
         return Result.success(mediaFavoriteService.removeFavorite(username, mediaId));
     }
 }

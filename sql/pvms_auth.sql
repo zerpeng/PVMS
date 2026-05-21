@@ -18,6 +18,35 @@ SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- ----------------------------
+-- Table structure for sys_role
+-- ----------------------------
+DROP TABLE IF EXISTS `sys_role`;
+CREATE TABLE `sys_role`  (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `role_key` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '角色标识',
+  `role_name` varchar(80) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '角色名称',
+  `status` tinyint NULL DEFAULT 1 COMMENT '状态：1-启用，0-禁用',
+  `super_admin` tinyint NULL DEFAULT 0 COMMENT '是否超管',
+  `visitor` tinyint NULL DEFAULT 0 COMMENT '是否访客',
+  `menu_keys` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '菜单权限',
+  `directory_ids` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '目录权限ID',
+  `album_ids` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '相册权限ID',
+  `tag_ids` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '标签权限ID',
+  `remark` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '备注',
+  `builtin` tinyint NULL DEFAULT 0 COMMENT '是否内置角色',
+  `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP,
+  `update_time` datetime NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_role_key`(`role_key` ASC) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '角色权限配置表' ROW_FORMAT = Dynamic;
+
+INSERT INTO `sys_role` (`role_key`, `role_name`, `status`, `super_admin`, `visitor`, `menu_keys`, `directory_ids`, `album_ids`, `tag_ids`, `builtin`)
+VALUES
+  ('ADMIN', '超级管理员', 1, 1, 0, 'library,projects,album-tags,favorites,users,roles', '', '', '', 1),
+  ('USER', '普通用户', 1, 0, 0, 'library,projects,album-tags,favorites', '', '', '', 1),
+  ('VISITOR', '访客', 1, 0, 1, 'library,album-tags', '', '', '', 1);
+
+-- ----------------------------
 -- Table structure for sys_user
 -- ----------------------------
 DROP TABLE IF EXISTS `sys_user`;

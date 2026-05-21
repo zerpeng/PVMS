@@ -24,6 +24,8 @@ public class MonitorDirectory {
 
     private LocalDateTime lastScanTime;
 
+    private String createUsername;
+
     @TableLogic
     private Integer delFlag;
 

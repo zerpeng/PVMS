@@ -29,6 +29,7 @@ CREATE TABLE `album`  (
   `query_rule` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '智能相册规则(JSON格式)',
   `cover_media_id` bigint NULL DEFAULT NULL COMMENT '封面图ID',
   `create_user_id` bigint NULL DEFAULT NULL,
+  `create_username` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '创建用户',
   `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP,
   `del_flag` tinyint NULL DEFAULT 0 COMMENT '删除标志：0-正常，1-已删除',
   PRIMARY KEY (`id`) USING BTREE
@@ -123,6 +124,7 @@ CREATE TABLE `monitor_directory`  (
   `is_recursive` tinyint NULL DEFAULT 1 COMMENT '是否递归子目录',
   `scan_status` tinyint NULL DEFAULT 0 COMMENT '扫描状态：0-待机，1-扫描中',
   `last_scan_time` datetime NULL DEFAULT NULL COMMENT '最后一次完整扫描时间',
+  `create_username` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '创建用户',
   `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updateTime` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '修改时间',
   `del_flag` tinyint NULL DEFAULT 0 COMMENT '删除标志：0-正常，1-已删除',
@@ -172,6 +174,7 @@ CREATE TABLE `tag`  (
   `name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '标签名称',
   `tag_type` tinyint NULL DEFAULT 1 COMMENT '类型：1-手动，2-AI生成',
   `category` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '维度：人物、地点、食物等',
+  `create_username` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '创建用户',
   `del_flag` tinyint NULL DEFAULT 0 COMMENT '删除标志：0-正常，1-已删除',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_name_type`(`name` ASC, `tag_type` ASC) USING BTREE

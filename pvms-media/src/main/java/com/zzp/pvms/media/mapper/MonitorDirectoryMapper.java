@@ -8,7 +8,7 @@ import org.apache.ibatis.annotations.Update;
 
 public interface MonitorDirectoryMapper extends BaseMapper<MonitorDirectory> {
     @Select("""
-            SELECT id, dir_path, is_recursive, scan_status, last_scan_time, del_flag, create_time
+            SELECT id, dir_path, is_recursive, scan_status, last_scan_time, create_username, del_flag, create_time
             FROM monitor_directory
             WHERE dir_path = #{path}
             LIMIT 1
@@ -20,6 +20,7 @@ public interface MonitorDirectoryMapper extends BaseMapper<MonitorDirectory> {
             SET is_recursive = #{isRecursive},
                 scan_status = #{scanStatus},
                 last_scan_time = NULL,
+                create_username = #{createUsername},
                 update_time = #{updateTime},
                 del_flag = 0
             WHERE id = #{id}

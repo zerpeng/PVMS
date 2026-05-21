@@ -1,9 +1,11 @@
 package com.zzp.pvms.media.controller;
 
 import com.zzp.pvms.common.api.Result;
+import com.zzp.pvms.media.domain.AuthContext;
 import com.zzp.pvms.media.domain.Tag;
 import com.zzp.pvms.media.domain.dto.IdsRequest;
 import com.zzp.pvms.media.service.TagService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,50 +27,61 @@ public class TagController {
     private TagService tagService;
 
     @GetMapping
-    public Result<List<Tag>> listAll() {
-        return Result.success(tagService.listActiveTags());
+    public Result<List<Tag>> listAll(HttpServletRequest request) {
+        return Result.success(tagService.listActiveTags(auth(request)));
     }
 
     @PostMapping
-    public Result<Tag> create(@RequestBody Tag tag) {
-        return Result.success(tagService.createTag(tag));
+    public Result<Tag> create(@RequestBody Tag tag, HttpServletRequest request) {
+        return Result.success(tagService.createTag(tag, auth(request)));
     }
 
     @PutMapping("/{id}")
-    public Result<Tag> update(@PathVariable Long id, @RequestBody Tag tag) {
-        return Result.success(tagService.updateTag(id, tag));
+    public Result<Tag> update(@PathVariable Long id, @RequestBody Tag tag, HttpServletRequest request) {
+        return Result.success(tagService.updateTag(id, tag, auth(request)));
     }
 
     @DeleteMapping("/{id}")
-    public Result<Boolean> remove(@PathVariable Long id) {
-        return Result.success(tagService.removeTags(List.of(id)));
+    public Result<Boolean> remove(@PathVariable Long id, HttpServletRequest request) {
+        return Result.success(tagService.removeTags(List.of(id), auth(request)));
     }
 
     @DeleteMapping
-    public Result<Boolean> removeBatch(@RequestBody(required = false) IdsRequest request) {
-        return Result.success(tagService.removeTags(request == null ? null : request.getIds()));
+    public Result<Boolean> removeBatch(@RequestBody(required = false) IdsRequest idsRequest, HttpServletRequest request) {
+        return Result.success(tagService.removeTags(idsRequest == null ? null : idsRequest.getIds(), auth(request)));
     }
 
     @PostMapping("/bind")
-    public Result<String> bind(@RequestParam Long mediaId, @RequestParam Long tagId) {
-        tagService.addTagToMedia(mediaId, tagId);
+    public Result<String> bind(@RequestParam Long mediaId, @RequestParam Long tagId, HttpServletRequest request) {
+        tagService.addTagToMedia(mediaId, tagId, auth(request));
         return Result.success("绑定成功");
     }
 
     @PostMapping("/unbind")
-    public Result<String> unbind(@RequestParam Long mediaId, @RequestParam Long tagId) {
-        tagService.removeTagFromMedia(mediaId, tagId);
+    public Result<String> unbind(@RequestParam Long mediaId, @RequestParam Long tagId, HttpServletRequest request) {
+        tagService.removeTagFromMedia(mediaId, tagId, auth(request));
         return Result.success("解绑成功");
     }
 
     @DeleteMapping("/{tagId}/media/{mediaId}")
-    public Result<String> removeMedia(@PathVariable Long tagId, @PathVariable Long mediaId) {
-        tagService.removeTagFromMedia(mediaId, tagId);
-        return Result.success("移除成功！！！");
+    public Result<String> removeMedia(@PathVariable Long tagId, @PathVariable Long mediaId, HttpServletRequest request) {
+        tagService.removeTagFromMedia(mediaId, tagId, auth(request));
+        return Result.success("移除成功");
     }
 
     @GetMapping("/media/{mediaId}")
-    public Result<List<Tag>> getByMedia(@PathVariable Long mediaId) {
-        return Result.success(tagService.getTagsByMediaId(mediaId));
+    public Result<List<Tag>> getByMedia(@PathVariable Long mediaId, HttpServletRequest request) {
+        return Result.success(tagService.getTagsByMediaId(mediaId, auth(request)));
+    }
+
+    private AuthContext auth(HttpServletRequest request) {
+        return AuthContext.of(
+                request.getHeader("X-User-Name"),
+                request.getHeader("X-User-Role"),
+                request.getHeader("X-Super-Admin"),
+                request.getHeader("X-Visitor"),
+                request.getHeader("X-Directory-Ids"),
+                request.getHeader("X-Album-Ids"),
+                request.getHeader("X-Tag-Ids"));
     }
 }

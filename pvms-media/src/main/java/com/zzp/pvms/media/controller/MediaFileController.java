@@ -2,6 +2,7 @@ package com.zzp.pvms.media.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zzp.pvms.common.api.Result;
+import com.zzp.pvms.media.domain.AuthContext;
 import com.zzp.pvms.media.domain.MediaFile;
 import com.zzp.pvms.media.service.MediaFileService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,23 +37,52 @@ public class MediaFileController {
             @RequestParam(required = false) Long albumId,
             @RequestParam(required = false) Long tagId,
             @RequestParam(required = false) Boolean favoriteOnly,
-            @RequestHeader(value = "X-User-Name", required = false) String username) {
-        return Result.success(mediaFileService.queryPage(current, size, mediaType, albumId, tagId, favoriteOnly, username));
+            @RequestHeader(value = "X-User-Name", required = false) String username,
+            @RequestHeader(value = "X-User-Role", required = false) String roleKey,
+            @RequestHeader(value = "X-Super-Admin", required = false) String superAdmin,
+            @RequestHeader(value = "X-Visitor", required = false) String visitor,
+            @RequestHeader(value = "X-Directory-Ids", required = false) String directoryIds,
+            @RequestHeader(value = "X-Album-Ids", required = false) String albumIds,
+            @RequestHeader(value = "X-Tag-Ids", required = false) String tagIds) {
+        return Result.success(mediaFileService.queryPage(current, size, mediaType, albumId, tagId, favoriteOnly, auth(username, roleKey, superAdmin, visitor, directoryIds, albumIds, tagIds)));
     }
 
     @GetMapping("/timeline")
-    public Result<List<Map<String, Object>>> timeline() {
-        return Result.success(mediaFileService.getTimeLine());
+    public Result<List<Map<String, Object>>> timeline(
+            @RequestHeader(value = "X-User-Name", required = false) String username,
+            @RequestHeader(value = "X-User-Role", required = false) String roleKey,
+            @RequestHeader(value = "X-Super-Admin", required = false) String superAdmin,
+            @RequestHeader(value = "X-Visitor", required = false) String visitor,
+            @RequestHeader(value = "X-Directory-Ids", required = false) String directoryIds,
+            @RequestHeader(value = "X-Album-Ids", required = false) String albumIds,
+            @RequestHeader(value = "X-Tag-Ids", required = false) String tagIds) {
+        return Result.success(mediaFileService.getTimeLine(auth(username, roleKey, superAdmin, visitor, directoryIds, albumIds, tagIds)));
     }
 
     @GetMapping("/{id}")
-    public Result<MediaFile> detail(@PathVariable Long id) {
-        return Result.success(mediaFileService.getActiveById(id));
+    public Result<MediaFile> detail(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-User-Name", required = false) String username,
+            @RequestHeader(value = "X-User-Role", required = false) String roleKey,
+            @RequestHeader(value = "X-Super-Admin", required = false) String superAdmin,
+            @RequestHeader(value = "X-Visitor", required = false) String visitor,
+            @RequestHeader(value = "X-Directory-Ids", required = false) String directoryIds,
+            @RequestHeader(value = "X-Album-Ids", required = false) String albumIds,
+            @RequestHeader(value = "X-Tag-Ids", required = false) String tagIds) {
+        return Result.success(mediaFileService.getActiveById(id, auth(username, roleKey, superAdmin, visitor, directoryIds, albumIds, tagIds)));
     }
 
     @GetMapping("/{id}/content")
-    public ResponseEntity<Resource> content(@PathVariable Long id) {
-        MediaFile mediaFile = mediaFileService.getActiveById(id);
+    public ResponseEntity<Resource> content(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-User-Name", required = false) String username,
+            @RequestHeader(value = "X-User-Role", required = false) String roleKey,
+            @RequestHeader(value = "X-Super-Admin", required = false) String superAdmin,
+            @RequestHeader(value = "X-Visitor", required = false) String visitor,
+            @RequestHeader(value = "X-Directory-Ids", required = false) String directoryIds,
+            @RequestHeader(value = "X-Album-Ids", required = false) String albumIds,
+            @RequestHeader(value = "X-Tag-Ids", required = false) String tagIds) {
+        MediaFile mediaFile = mediaFileService.getActiveById(id, auth(username, roleKey, superAdmin, visitor, directoryIds, albumIds, tagIds));
         if (mediaFile == null || mediaFile.getFilePath() == null) {
             return ResponseEntity.notFound().build();
         }
@@ -93,5 +123,9 @@ public class MediaFileController {
             return MediaType.parseMediaType("video/" + ("mov".equals(format) ? "quicktime" : format));
         }
         return MediaType.IMAGE_JPEG;
+    }
+
+    private AuthContext auth(String username, String roleKey, String superAdmin, String visitor, String directoryIds, String albumIds, String tagIds) {
+        return AuthContext.of(username, roleKey, superAdmin, visitor, directoryIds, albumIds, tagIds);
     }
 }

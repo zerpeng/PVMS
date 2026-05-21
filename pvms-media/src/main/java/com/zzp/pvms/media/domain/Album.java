@@ -28,6 +28,8 @@ public class Album {
 
     private Long createUserId;
 
+    private String createUsername;
+
     private LocalDateTime createTime;
 
     @TableLogic

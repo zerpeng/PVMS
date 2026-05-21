@@ -24,15 +24,16 @@
           </button>
         </div>
 
-        <label class="select-all">
+        <label v-if="!authInfo.visitor" class="select-all">
           <input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll">
           <span>全选</span>
         </label>
-        <button class="add-btn" type="button" :disabled="loading" @click="openCreateDialog">
+        <button v-if="!authInfo.visitor" class="add-btn" type="button" :disabled="loading" @click="openCreateDialog">
           <Plus :size="16" />
           新增{{ activeTab === 'albums' ? '相册' : '标签' }}
         </button>
         <button
+          v-if="!authInfo.visitor"
           class="remove-btn"
           type="button"
           :disabled="currentSelectedIds.length === 0 || loading"
@@ -45,7 +46,7 @@
     </header>
 
     <section v-if="!hasActiveMediaView && activeTab === 'albums'" class="card-grid">
-      <button class="add-card" type="button" @click="openCreateDialog">
+      <button v-if="!authInfo.visitor" class="add-card" type="button" @click="openCreateDialog">
         <div class="add-icon">
           <Plus :size="42" />
         </div>
@@ -65,6 +66,7 @@
         @click="openAlbumMediaList(album)"
       >
         <input
+          v-if="!authInfo.visitor"
           class="entity-check"
           type="checkbox"
           :checked="selectedAlbumIds.includes(album.id)"
@@ -83,7 +85,7 @@
           <span>创建时间 {{ formatTime(album.createTime) }}</span>
           <span v-if="album.albumType === 2">{{ album.queryRule ? '已配置规则' : '未配置规则' }}</span>
         </div>
-        <div class="card-actions" @click.stop>
+        <div v-if="!authInfo.visitor" class="card-actions" @click.stop>
           <button class="ghost-btn" type="button" @click="openEditAlbumDialog(album)">编辑</button>
           <button class="danger-text-btn" type="button" @click="removeAlbum(album.id)">移除</button>
         </div>
@@ -91,7 +93,7 @@
     </section>
 
     <section v-else-if="!hasActiveMediaView" class="card-grid">
-      <button class="add-card" type="button" @click="openCreateDialog">
+      <button v-if="!authInfo.visitor" class="add-card" type="button" @click="openCreateDialog">
         <div class="add-icon">
           <Plus :size="42" />
         </div>
@@ -111,6 +113,7 @@
         @click="openTagMediaList(tag)"
       >
         <input
+          v-if="!authInfo.visitor"
           class="entity-check"
           type="checkbox"
           :checked="selectedTagIds.includes(tag.id)"
@@ -129,7 +132,7 @@
           <span>{{ tag.parentId ? `父标签 ${getParentTagName(tag.parentId)}` : '顶级标签' }}</span>
           <span>ID {{ tag.id }}</span>
         </div>
-        <div class="card-actions" @click.stop>
+        <div v-if="!authInfo.visitor" class="card-actions" @click.stop>
           <button class="ghost-btn" type="button" @click="openEditTagDialog(tag)">编辑</button>
           <button class="danger-text-btn" type="button" @click="removeTag(tag.id)">移除</button>
         </div>
@@ -156,7 +159,7 @@
           </div>
         </div>
 
-        <div class="media-toolbar">
+        <div v-if="!authInfo.visitor" class="media-toolbar">
           <label class="select-all">
             <input type="checkbox" :checked="isAllMediaSelected" @change="toggleSelectAllMedia">
             <span>全选</span>
@@ -181,8 +184,8 @@
           :asset="asset"
           :selected="selectedMediaIds.includes(asset.id)"
           :favorited="asset.favorited"
-          :favorite-disabled="loading"
-          :show-remove-action="true"
+          :favorite-disabled="loading || authInfo.visitor"
+          :show-remove-action="!authInfo.visitor"
           :remove-disabled="loading"
           :remove-title="activeTab === 'albums' ? '从当前相册移除' : '从当前标签移除'"
           @preview="openViewer(asset.id)"
@@ -292,6 +295,7 @@ import AssetCard from '@/components/gallery/AssetCard.vue'
 import MediaViewer from '@/components/gallery/MediaViewer.vue'
 import { mediaApi } from '@/api/media'
 import type { Asset } from '@/stores/media'
+import { getAuthInfo } from '@/utils/authz'
 
 type TabKey = 'albums' | 'tags'
 type DialogMode = 'create' | 'edit'
@@ -321,6 +325,7 @@ interface MediaViewState {
 }
 
 const activeTab = ref<TabKey>('albums')
+const authInfo = computed(() => getAuthInfo())
 const dialogOpen = ref(false)
 const dialogMode = ref<DialogMode>('create')
 const loading = ref(false)

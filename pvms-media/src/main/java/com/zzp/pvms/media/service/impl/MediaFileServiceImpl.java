@@ -10,8 +10,20 @@ import com.drew.metadata.exif.ExifSubIFDDirectory;
 import com.drew.metadata.exif.GpsDirectory;
 import com.zzp.pvms.common.constant.MqConstants;
 import com.zzp.pvms.common.dto.MediaProcessMsg;
+import com.zzp.pvms.common.exception.ApiException;
+import com.zzp.pvms.media.domain.AuthContext;
+import com.zzp.pvms.media.domain.Album;
+import com.zzp.pvms.media.domain.MediaAlbumRelation;
 import com.zzp.pvms.media.domain.MediaFile;
+import com.zzp.pvms.media.domain.MonitorDirectory;
+import com.zzp.pvms.media.domain.MediaTagRelation;
+import com.zzp.pvms.media.domain.Tag;
+import com.zzp.pvms.media.mapper.AlbumMapper;
+import com.zzp.pvms.media.mapper.MediaAlbumRelationMapper;
 import com.zzp.pvms.media.mapper.MediaFileMapper;
+import com.zzp.pvms.media.mapper.MonitorDirectoryMapper;
+import com.zzp.pvms.media.mapper.MediaTagRelationMapper;
+import com.zzp.pvms.media.mapper.TagMapper;
 import com.zzp.pvms.media.service.MediaFileService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -33,19 +45,56 @@ public class MediaFileServiceImpl extends ServiceImpl<MediaFileMapper, MediaFile
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
+    @Autowired
+    private MonitorDirectoryMapper monitorDirectoryMapper;
+
+    @Autowired
+    private AlbumMapper albumMapper;
+
+    @Autowired
+    private TagMapper tagMapper;
+
+    @Autowired
+    private MediaAlbumRelationMapper mediaAlbumRelationMapper;
+
+    @Autowired
+    private MediaTagRelationMapper mediaTagRelationMapper;
+
     @Override
-    public Page<MediaFile> queryPage(int current, int size, Integer mediaType, Long albumId, Long tagId, Boolean favoriteOnly, String username) {
+    public Page<MediaFile> queryPage(int current, int size, Integer mediaType, Long albumId, Long tagId, Boolean favoriteOnly, AuthContext authContext) {
+        if (albumId != null && !canAccessAlbum(albumId, authContext)) {
+            throw new ApiException("无权访问该相册");
+        }
+        if (tagId != null && !canAccessTag(tagId, authContext)) {
+            throw new ApiException("无权访问该标签");
+        }
         Page<MediaFile> page = new Page<>(current, size);
-        return (Page<MediaFile>) baseMapper.selectActivePage(page, mediaType, albumId, tagId, favoriteOnly, resolveUsername(username));
+        return (Page<MediaFile>) baseMapper.selectActivePage(
+                page,
+                mediaType,
+                albumId,
+                tagId,
+                favoriteOnly,
+                resolveUsername(authContext.getUsername()),
+                authContext.isSuperAdmin(),
+                resolveDirectoryIds(authContext),
+                authContext.getAlbumIds());
     }
 
     @Override
-    public MediaFile getActiveById(Long id) {
-        return baseMapper.selectActiveById(id);
+    public MediaFile getActiveById(Long id, AuthContext authContext) {
+        MediaFile mediaFile = baseMapper.selectActiveById(id);
+        if (mediaFile == null || !canAccessMedia(mediaFile, authContext)) {
+            return null;
+        }
+        return mediaFile;
     }
 
     @Override
-    public List<Map<String, Object>> getTimeLine() {
+    public List<Map<String, Object>> getTimeLine(AuthContext authContext) {
+        if (!authContext.isSuperAdmin() && resolveDirectoryIds(authContext).isEmpty()) {
+            return List.of();
+        }
         return baseMapper.selectActiveTimeline();
     }
 
@@ -155,5 +204,70 @@ public class MediaFileServiceImpl extends ServiceImpl<MediaFileMapper, MediaFile
 
     private String resolveUsername(String username) {
         return StringUtils.hasText(username) ? username : "anonymous";
+    }
+
+    private List<Long> resolveDirectoryIds(AuthContext authContext) {
+        if (authContext.isSuperAdmin()) {
+            return List.of();
+        }
+        List<Long> permittedIds = new java.util.ArrayList<>(authContext.getDirectoryIds());
+        if (!authContext.isVisitor()) {
+            List<MonitorDirectory> ownedDirectories = monitorDirectoryMapper.selectList(
+                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<MonitorDirectory>()
+                            .eq(MonitorDirectory::getCreateUsername, authContext.getUsername()));
+            ownedDirectories.stream()
+                    .map(MonitorDirectory::getId)
+                    .filter(id -> !permittedIds.contains(id))
+                    .forEach(permittedIds::add);
+        }
+        return permittedIds;
+    }
+
+    private boolean canAccessAlbum(Long albumId, AuthContext authContext) {
+        if (authContext.isSuperAdmin() || authContext.getAlbumIds().contains(albumId)) {
+            return true;
+        }
+        if (authContext.isVisitor()) {
+            return false;
+        }
+        Album album = albumMapper.selectById(albumId);
+        return album != null && authContext.getUsername().equals(album.getCreateUsername());
+    }
+
+    private boolean canAccessTag(Long tagId, AuthContext authContext) {
+        if (authContext.isSuperAdmin() || authContext.getTagIds().contains(tagId)) {
+            return true;
+        }
+        if (authContext.isVisitor()) {
+            return false;
+        }
+        Tag tag = tagMapper.selectById(tagId);
+        return tag != null && authContext.getUsername().equals(tag.getCreateUsername());
+    }
+
+    private boolean canAccessMedia(MediaFile mediaFile, AuthContext authContext) {
+        if (authContext.isSuperAdmin()) {
+            return true;
+        }
+        if (resolveDirectoryIds(authContext).contains(mediaFile.getDirectoryId())) {
+            return true;
+        }
+        if (!authContext.getAlbumIds().isEmpty()) {
+            Long albumCount = mediaAlbumRelationMapper.selectCount(
+                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<MediaAlbumRelation>()
+                            .eq(MediaAlbumRelation::getMediaId, mediaFile.getId())
+                            .in(MediaAlbumRelation::getAlbumId, authContext.getAlbumIds()));
+            if (albumCount > 0) {
+                return true;
+            }
+        }
+        if (!authContext.getTagIds().isEmpty()) {
+            Long tagCount = mediaTagRelationMapper.selectCount(
+                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<MediaTagRelation>()
+                            .eq(MediaTagRelation::getMediaId, mediaFile.getId())
+                            .in(MediaTagRelation::getTagId, authContext.getTagIds()));
+            return tagCount > 0;
+        }
+        return false;
     }
 }

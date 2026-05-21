@@ -42,9 +42,11 @@ import {
   Heart,
   Clock,
   Users,
+  ShieldCheck,
   Cpu,
   Settings,
 } from 'lucide-vue-next'
+import { canShowMenu } from '@/utils/authz'
 
 const route = useRoute()
 const router = useRouter()
@@ -55,8 +57,9 @@ const menuItems = [
   { label: '相册标签', icon: Tag, routeName: 'album-tags' },
   { label: '我的收藏', icon: Heart, routeName: 'favorites' },
   { label: '用户管理', icon: Users, routeName: 'users' },
+  { label: '角色管理', icon: ShieldCheck, routeName: 'roles' },
   { label: '最近访问', icon: Clock, routeName: '' },
-]
+].filter(item => !item.routeName || canShowMenu(item.routeName))
 
 const goToMenu = (routeName: string) => {
   if (!routeName) return
@@ -85,7 +88,7 @@ const goToMenu = (routeName: string) => {
   margin-bottom: 2.5rem;
   padding-left: 0.75rem;
   color: var(--primary);
-  letter-spacing: -0.5px;
+  letter-spacing: 0;
 }
 
 .logo-icon {

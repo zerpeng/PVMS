@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { canShowMenu } from '@/utils/authz'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -41,6 +42,12 @@ const router = createRouter({
       path: '/users',
       name: 'users',
       component: () => import('@/views/UserManagement.vue'),
+      meta: { layout: 'app', requiresAuth: true },
+    },
+    {
+      path: '/roles',
+      name: 'roles',
+      component: () => import('@/views/RoleManagement.vue'),
       meta: { layout: 'app', requiresAuth: true },
     },
   ],
@@ -86,6 +93,8 @@ router.beforeEach((to, from, next) => {
   if (!isPublicPage && !tokenValid) {
     next({ name: 'login', query: { redirect: to.fullPath } })
   } else if (isPublicPage && tokenValid && to.name === 'login') {
+    next({ name: 'library' })
+  } else if (!isPublicPage && typeof to.name === 'string' && !canShowMenu(to.name)) {
     next({ name: 'library' })
   } else {
     next()

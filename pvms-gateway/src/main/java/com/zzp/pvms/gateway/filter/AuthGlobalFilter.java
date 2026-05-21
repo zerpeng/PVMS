@@ -92,7 +92,14 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
                         ServerWebExchange mutatedExchange = exchange.mutate()
                                 .request(builder -> builder
                                         .header("X-User-Name", claims.getSubject())
-                                        .header("X-User-Roles", String.valueOf(claims.get("roles"))))
+                                        .header("X-User-Roles", String.valueOf(claims.get("roles")))
+                                        .header("X-User-Role", String.valueOf(claims.get("roleKey")))
+                                        .header("X-Super-Admin", String.valueOf(claims.get("superAdmin")))
+                                        .header("X-Visitor", String.valueOf(claims.get("visitor")))
+                                        .header("X-Menu-Keys", String.valueOf(claims.get("menuKeys")))
+                                        .header("X-Directory-Ids", String.valueOf(claims.get("directoryIds")))
+                                        .header("X-Album-Ids", String.valueOf(claims.get("albumIds")))
+                                        .header("X-Tag-Ids", String.valueOf(claims.get("tagIds"))))
                                 .build();
                         return chain.filter(mutatedExchange);
                     });

@@ -22,6 +22,8 @@ public class Tag {
     /** 维度：人物、地点、食物等 */
     private String category;
 
+    private String createUsername;
+
     @TableLogic
     private Integer delFlag;
 }
