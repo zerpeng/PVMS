@@ -43,6 +43,7 @@ import {
   Clock,
   Users,
   ShieldCheck,
+  ClipboardCheck,
   Cpu,
   Settings,
 } from 'lucide-vue-next'
@@ -58,6 +59,7 @@ const menuItems = [
   { label: '我的收藏', icon: Heart, routeName: 'favorites' },
   { label: '用户管理', icon: Users, routeName: 'users' },
   { label: '角色管理', icon: ShieldCheck, routeName: 'roles' },
+  { label: '访问审核', icon: ClipboardCheck, routeName: 'applications' },
   { label: '最近访问', icon: Clock, routeName: '' },
 ].filter(item => !item.routeName || canShowMenu(item.routeName))
 

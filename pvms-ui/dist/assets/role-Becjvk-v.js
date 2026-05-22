@@ -1,0 +1,1 @@
+import{L as r}from"./index-B8YkWl5U.js";const u={fetchRoles(){return r.get("/auth/roles")},createRole(e){return r.post("/auth/roles",e)},updateRole(e,t){return r.put(`/auth/roles/${e}`,t)},removeRole(e){return r.delete(`/auth/roles/${e}`)}};export{u as r};

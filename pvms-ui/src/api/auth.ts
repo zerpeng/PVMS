@@ -27,5 +27,9 @@ export const authApi = {
    */
   getCaptcha() {
     return request.get<any, any>('/auth/captcha')
+  },
+
+  getProfile() {
+    return request.get<any, any>('/auth/profile')
   }
 }

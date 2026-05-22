@@ -52,7 +52,9 @@ public class JwtTokenUtil {
                 .last("LIMIT 1"));
         String roleKey = user == null ? resolveRoleKey(userDetails) : user.getRoleKey();
         SysRole role = sysRoleService.getActiveRole(roleKey);
+        claims.put("nickname", user == null ? "" : user.getNickname());
         claims.put("roleKey", roleKey);
+        claims.put("roleName", role == null ? roleKey : role.getRoleName());
         claims.put("superAdmin", role != null && Integer.valueOf(1).equals(role.getSuperAdmin()));
         claims.put("visitor", role != null && Integer.valueOf(1).equals(role.getVisitor()));
         claims.put("menuKeys", role == null ? "" : role.getMenuKeys());

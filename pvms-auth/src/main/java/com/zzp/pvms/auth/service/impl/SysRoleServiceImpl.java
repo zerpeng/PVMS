@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> implements SysRoleService {
-    private static final List<String> ADMIN_MENUS = List.of("library", "projects", "album-tags", "favorites", "users", "roles");
+    private static final List<String> ADMIN_MENUS = List.of("library", "projects", "album-tags", "favorites", "users", "roles", "applications");
     private static final List<String> USER_MENUS = List.of("library", "projects", "album-tags", "favorites");
     private static final List<String> VISITOR_MENUS = List.of("library", "album-tags");
 

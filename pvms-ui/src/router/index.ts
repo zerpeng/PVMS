@@ -50,6 +50,12 @@ const router = createRouter({
       component: () => import('@/views/RoleManagement.vue'),
       meta: { layout: 'app', requiresAuth: true },
     },
+    {
+      path: '/applications',
+      name: 'applications',
+      component: () => import('@/views/ApplicationAudit.vue'),
+      meta: { layout: 'app', requiresAuth: true },
+    },
   ],
 })
 

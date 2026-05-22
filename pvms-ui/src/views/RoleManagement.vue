@@ -135,7 +135,8 @@ const menuOptions = [
   { label: '相册标签', value: 'album-tags' },
   { label: '我的收藏', value: 'favorites' },
   { label: '用户管理', value: 'users' },
-  { label: '角色管理', value: 'roles' }
+  { label: '角色管理', value: 'roles' },
+  { label: '访问审核', value: 'applications' }
 ]
 
 const roles = ref<RoleInfo[]>([])

@@ -129,7 +129,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { 
   User, Lock, Loader2, 
@@ -163,6 +163,16 @@ const registerForm = reactive({
   reason: '',
   captcha: ''
 })
+
+const resetRegisterForm = () => {
+  Object.assign(registerForm, {
+    username: '',
+    password: '',
+    applicant: '',
+    reason: '',
+    captcha: ''
+  })
+}
 
 const refreshCaptcha = async () => {
   try {
@@ -221,8 +231,12 @@ const handleLogin = async () => {
 const handleRegister = async () => {
   loading.value = true
   try {
-    const res = await authApi.register(registerForm)
+    const res = await authApi.register({
+      ...registerForm,
+      captchaKey: captchaKey.value
+    })
     alert(res || '申请已提交')
+    resetRegisterForm()
     mode.value = 'login'
   } catch (err: any) {
     alert(err.message || '申请失败')
@@ -233,6 +247,10 @@ const handleRegister = async () => {
 }
 
 onMounted(() => {
+  refreshCaptcha()
+})
+
+watch(mode, () => {
   refreshCaptcha()
 })
 </script>

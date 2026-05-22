@@ -1,6 +1,8 @@
 export interface AuthInfo {
   username?: string
+  nickname?: string
   roleKey: string
+  roleName?: string
   superAdmin: boolean
   visitor: boolean
   menuKeys: string[]
@@ -28,7 +30,9 @@ export const getAuthInfo = (): AuthInfo => {
     const roleKey = payload.roleKey || splitStrings(payload.roles)[0]?.replace('ROLE_', '') || 'USER'
     return {
       username: payload.sub,
+      nickname: payload.nickname,
       roleKey,
+      roleName: payload.roleName,
       superAdmin: Boolean(payload.superAdmin) || roleKey === 'ADMIN',
       visitor: Boolean(payload.visitor) || roleKey === 'VISITOR',
       menuKeys: splitStrings(payload.menuKeys),
@@ -44,5 +48,5 @@ export const getAuthInfo = (): AuthInfo => {
 export const canShowMenu = (menuKey: string) => {
   const auth = getAuthInfo()
   if (auth.superAdmin) return true
-  return auth.menuKeys.length === 0 ? !['users', 'roles'].includes(menuKey) : auth.menuKeys.includes(menuKey)
+  return auth.menuKeys.length === 0 ? !['users', 'roles', 'applications'].includes(menuKey) : auth.menuKeys.includes(menuKey)
 }

@@ -42,7 +42,7 @@ CREATE TABLE `sys_role`  (
 
 INSERT INTO `sys_role` (`role_key`, `role_name`, `status`, `super_admin`, `visitor`, `menu_keys`, `directory_ids`, `album_ids`, `tag_ids`, `builtin`)
 VALUES
-  ('ADMIN', '超级管理员', 1, 1, 0, 'library,projects,album-tags,favorites,users,roles', '', '', '', 1),
+  ('ADMIN', '超级管理员', 1, 1, 0, 'library,projects,album-tags,favorites,users,roles,applications', '', '', '', 1),
   ('USER', '普通用户', 1, 0, 0, 'library,projects,album-tags,favorites', '', '', '', 1),
   ('VISITOR', '访客', 1, 0, 1, 'library,album-tags', '', '', '', 1);
 
@@ -70,12 +70,17 @@ CREATE TABLE `sys_user`  (
 DROP TABLE IF EXISTS `sys_visitor_application`;
 CREATE TABLE `sys_visitor_application`  (
   `id` bigint NOT NULL AUTO_INCREMENT,
+  `user_id` bigint NULL DEFAULT NULL COMMENT '关联用户ID',
+  `username` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '申请账号',
   `applicant_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '申请人姓名',
   `reason` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '申请理由',
   `target_album_id` bigint NULL DEFAULT NULL COMMENT '申请访问的相册ID',
   `status` tinyint NULL DEFAULT 0 COMMENT '状态：0-待审批，1-已通过，2-已拒绝',
   `auth_code` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '审批通过后的访问码',
   `expire_time` datetime NULL DEFAULT NULL COMMENT '权限过期时间',
+  `role_key` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '审核后绑定角色',
+  `audit_username` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '审核人',
+  `audit_remark` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '审核备注',
   `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP,
   `audit_time` datetime NULL DEFAULT NULL COMMENT '审批时间',
   PRIMARY KEY (`id`) USING BTREE

@@ -33,7 +33,9 @@ request.interceptors.response.use(
     // 收到 401 说明登录态失效，清理本地 Token 并跳转回登录页。
     if (error.response?.status === 401) {
       localStorage.removeItem('token')
-      window.location.href = '/login'
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login'
+      }
     }
     console.error('Network Error:', error)
     return Promise.reject(error)
